@@ -1,0 +1,15 @@
+{
+  "files": {
+    "main.css": "/skill-link-cdo/static/css/main.cfa4491c.css",
+    "main.js": "/skill-link-cdo/static/js/main.a6437c9c.js",
+    "static/js/453.87030fb9.chunk.js": "/skill-link-cdo/static/js/453.87030fb9.chunk.js",
+    "index.html": "/skill-link-cdo/index.html",
+    "main.cfa4491c.css.map": "/skill-link-cdo/static/css/main.cfa4491c.css.map",
+    "main.a6437c9c.js.map": "/skill-link-cdo/static/js/main.a6437c9c.js.map",
+    "453.87030fb9.chunk.js.map": "/skill-link-cdo/static/js/453.87030fb9.chunk.js.map"
+  },
+  "entrypoints": [
+    "static/css/main.cfa4491c.css",
+    "static/js/main.a6437c9c.js"
+  ]
+}
