@@ -2,7 +2,7 @@ import React, { useState } from 'react';
 import './WorkerRegistration.css';
 
 const WorkerRegistration = () => {
-  // Dynamic data for dropdowns and checklists [cite: 5, 49]
+  // Dynamic data for dropdowns and checklists
   const barangays = ["Nazareth", "Macasandig", "Carmen", "Kauswagan", "Lapasan"];
   const skillsList = ["Electrician", "Plumber", "Carpenter", "Welder", "Beautician", "Mechanic"];
 
@@ -72,6 +72,11 @@ const WorkerRegistration = () => {
         <section className="form-group">
           <label>Availability / Oras ng Pagtatrabaho</label> 
           <input type="text" placeholder="e.g. Mon-Fri, 8am-5pm" />
+        </section>
+
+        <section className="form-group">
+          <label>Upload Profile Picture / Mag-upload ng Larawan</label> 
+          <input type="file" accept="image/*" />
         </section>
 
         <button type="submit" className="submit-btn">
