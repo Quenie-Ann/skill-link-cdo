@@ -1,70 +1,114 @@
-# Getting Started with Create React App
+# 🛠️ Skill-Link CDO
 
-This project was bootstrapped with [Create React App](https://github.com/facebook/create-react-app).
+**Barangay-Based Skilled Labor Registry and Matching System**
 
-## Available Scripts
+Skill-Link CDO is a web-based application that connects skilled workers with service seekers at the barangay level in Cagayan de Oro City. The system provides a centralized platform for worker registration and service visibility, designed to be simple, mobile-friendly, and accessible for community use.
 
-In the project directory, you can run:
+---
 
-### `npm start`
+## 📌 Project Purpose
 
-Runs the app in the development mode.\
-Open [http://localhost:3000](http://localhost:3000) to view it in your browser.
+The project addresses the difficulty skilled workers face in finding consistent job opportunities and the challenge residents face in locating reliable service providers. Skill-Link CDO aims to improve accessibility, visibility, and organization of skilled labor services within barangays.
 
-The page will reload when you make changes.\
-You may also see any lint errors in the console.
+---
 
-### `npm test`
+## 🎯 Objectives
 
-Launches the test runner in the interactive watch mode.\
-See the section about [running tests](https://facebook.github.io/create-react-app/docs/running-tests) for more information.
+* Register skilled workers in a centralized system
+* Improve access to local skilled labor services
+* Provide a simple and mobile-friendly registration interface
+* Serve as a foundation for ML-powered job matching
 
-### `npm run build`
+---
 
-Builds the app for production to the `build` folder.\
-It correctly bundles React in production mode and optimizes the build for the best performance.
+## 👥 Target Users
 
-The build is minified and the filenames include the hashes.\
-Your app is ready to be deployed!
+* Skilled Workers
+* Service Seekers
+* Barangay Administrators (future implementation)
 
-See the section about [deployment](https://facebook.github.io/create-react-app/docs/deployment) for more information.
+---
 
-### `npm run eject`
+## 🧩 Implemented Feature (Frontend – Week 1)
 
-**Note: this is a one-way operation. Once you `eject`, you can't go back!**
+### Worker Registration Screen
 
-If you aren't satisfied with the build tool and configuration choices, you can `eject` at any time. This command will remove the single build dependency from your project.
+* Personal information input
+* Barangay selection
+* Skill selection (multi-select)
+* Years of experience
+* Availability selection
+* Profile picture upload
 
-Instead, it will copy all the configuration files and the transitive dependencies (webpack, Babel, ESLint, etc) right into your project so you have full control over them. All of the commands except `eject` will still work, but they will point to the copied scripts so you can tweak them. At this point you're on your own.
+Dynamic data is simulated using local arrays to represent system data.
 
-You don't have to ever use `eject`. The curated feature set is suitable for small and middle deployments, and you shouldn't feel obligated to use this feature. However we understand that this tool wouldn't be useful if you couldn't customize it when you are ready for it.
+---
 
-## Learn More
+## 🧱 Technology Stack
 
-You can learn more in the [Create React App documentation](https://facebook.github.io/create-react-app/docs/getting-started).
+* **Frontend:** ReactJS (Create React App)
+* **Styling:** CSS
+* **State Management:** React Hooks
+* **Deployment:** GitHub Pages
+* **Version Control:** Git & GitHub
 
-To learn React, check out the [React documentation](https://reactjs.org/).
+---
 
-### Code Splitting
+## 🚀 Local Setup
 
-This section has moved here: [https://facebook.github.io/create-react-app/docs/code-splitting](https://facebook.github.io/create-react-app/docs/code-splitting)
+```bash
+npm install
+npm start
+```
 
-### Analyzing the Bundle Size
+Runs at:
 
-This section has moved here: [https://facebook.github.io/create-react-app/docs/analyzing-the-bundle-size](https://facebook.github.io/create-react-app/docs/analyzing-the-bundle-size)
+```
+http://localhost:3000
+```
 
-### Making a Progressive Web App
+---
 
-This section has moved here: [https://facebook.github.io/create-react-app/docs/making-a-progressive-web-app](https://facebook.github.io/create-react-app/docs/making-a-progressive-web-app)
+## 🌍 Deployment
 
-### Advanced Configuration
+The project is deployed using GitHub Pages via the `gh-pages` branch.
 
-This section has moved here: [https://facebook.github.io/create-react-app/docs/advanced-configuration](https://facebook.github.io/create-react-app/docs/advanced-configuration)
+```bash
+npm run deploy
+```
 
-### Deployment
+> Changes pushed to `main` require redeployment to update the live site.
 
-This section has moved here: [https://facebook.github.io/create-react-app/docs/deployment](https://facebook.github.io/create-react-app/docs/deployment)
+---
 
-### `npm run build` fails to minify
+## 🎨 UI/UX Notes
 
-This section has moved here: [https://facebook.github.io/create-react-app/docs/troubleshooting#npm-run-build-fails-to-minify](https://facebook.github.io/create-react-app/docs/troubleshooting#npm-run-build-fails-to-minify)
+* Mobile-first design
+* Clear form sections
+* Bilingual labels (English / Filipino)
+* Large touch-friendly inputs
+
+---
+
+## 🔮 Future Enhancements
+
+* ML-based worker-job matching
+* Pricing recommendations
+* Ratings and reviews
+* Admin dashboard
+* Demand forecasting
+
+---
+
+## 👩‍💻 Authors
+
+**Abragan, Quenie Ann H.**
+**Gaccion, Tirso Louise A.**
+**Tubio, Johnlie**
+BSIT Student
+
+---
+
+## 📄 License
+
+Educational use only.
