@@ -1,16 +1,16 @@
 {
   "files": {
-    "main.css": "/skill-link-cdo/static/css/main.b5ea14e6.css",
-    "main.js": "/skill-link-cdo/static/js/main.7ba90d5f.js",
+    "main.css": "/skill-link-cdo/static/css/main.a507e47c.css",
+    "main.js": "/skill-link-cdo/static/js/main.297321ab.js",
     "static/js/453.87030fb9.chunk.js": "/skill-link-cdo/static/js/453.87030fb9.chunk.js",
-    "static/media/logo-skill.png": "/skill-link-cdo/static/media/logo-skill.f7edef3205d83a299512.png",
+    "static/media/logo.png": "/skill-link-cdo/static/media/logo.615dc885e8f8b1daca77.png",
     "index.html": "/skill-link-cdo/index.html",
-    "main.b5ea14e6.css.map": "/skill-link-cdo/static/css/main.b5ea14e6.css.map",
-    "main.7ba90d5f.js.map": "/skill-link-cdo/static/js/main.7ba90d5f.js.map",
+    "main.a507e47c.css.map": "/skill-link-cdo/static/css/main.a507e47c.css.map",
+    "main.297321ab.js.map": "/skill-link-cdo/static/js/main.297321ab.js.map",
     "453.87030fb9.chunk.js.map": "/skill-link-cdo/static/js/453.87030fb9.chunk.js.map"
   },
   "entrypoints": [
-    "static/css/main.b5ea14e6.css",
-    "static/js/main.7ba90d5f.js"
+    "static/css/main.a507e47c.css",
+    "static/js/main.297321ab.js"
   ]
 }
