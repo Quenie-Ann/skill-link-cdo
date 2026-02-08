@@ -1,6 +1,6 @@
 import React from 'react';
 import './App.css';
-import WorkerRegistration from './components/WorkerRegistration';
+import WorkerRegistration from './pages/WorkerRegistration';
 
 function App() {
   return (
