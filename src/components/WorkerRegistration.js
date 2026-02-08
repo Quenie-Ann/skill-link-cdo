@@ -1,8 +1,9 @@
 import React, { useState } from 'react';
 import './WorkerRegistration.css';
+import logo from './assets/logo-skill.png';
 
 const WorkerRegistration = () => {
-  // Dynamic data for dropdowns and checklists
+  // Sample data for dropdowns and skills
   const barangays = ["Nazareth", "Macasandig", "Carmen", "Kauswagan", "Lapasan"];
   const skillsList = ["Electrician", "Plumber", "Carpenter", "Welder", "Beautician", "Mechanic"];
 
@@ -14,6 +15,10 @@ const WorkerRegistration = () => {
     availability: '',
     selectedSkills: []
   });
+
+  const handleChange = (e) => {
+    setFormData({ ...formData, [e.target.name]: e.target.value });
+  };
 
   const handleSkillChange = (skill) => {
     setFormData(prev => ({
@@ -27,61 +32,122 @@ const WorkerRegistration = () => {
   return (
     <main className="registration-container">
       <header className="form-header">
-        <h1>SKILL-LINK CDO</h1>
-        <p>Worker Registration / Pagparehistro ng Manggagawa</p>
+        <img src={logo} alt="Skill-Link CDO Logo" className="logo" />
+        <h1>Worker Registration</h1>
+        <p>Pagparehistro ng Manggagawa</p>
       </header>
 
       <form className="registration-form">
-        <section className="form-group">
-          <label>Full Name / Buong Pangalan</label> 
-          <input type="text" placeholder="Enter your name" required />
+
+        {/* Personal Info */}
+        <section className="form-section">
+          <h2>Personal Information</h2>
+
+          <label>
+            Full Name
+            <input
+              type="text"
+              name="name"
+              placeholder="Buong Pangalan"
+              value={formData.name}
+              onChange={handleChange}
+              required
+            />
+          </label>
+
+          <label>
+            Contact Number
+            <input
+              type="tel"
+              name="contact"
+              placeholder="09XXXXXXXXX"
+              value={formData.contact}
+              onChange={handleChange}
+              required
+            />
+          </label>
+
+          <label>
+            Barangay
+            <select
+              name="barangay"
+              value={formData.barangay}
+              onChange={handleChange}
+              required
+            >
+              <option value="">Pumili ng Barangay</option>
+              {barangays.map(b => (
+                <option key={b} value={b}>{b}</option>
+              ))}
+            </select>
+          </label>
         </section>
 
-        <section className="form-group">
-          <label>Contact Number / Numero ng Telepono</label> 
-          <input type="tel" placeholder="09XXXXXXXXX" required />
-        </section>
+        {/* Skills */}
+        <section className="form-section">
+          <h2>Skills / Mga Kasanayan</h2>
+          <p className="helper-text">
+            Piliin ang iyong kasanayan ({formData.selectedSkills.length} selected)
+          </p>
 
-        <section className="form-group">
-          <label>Barangay</label> 
-          <select required>
-            <option value="">Select your Barangay</option>
-            {barangays.map(b => <option key={b} value={b}>{b}</option>)}
-          </select>
-        </section>
-
-        <section className="form-group">
-          <label>Skills / Mga Kasanayan</label> 
           <div className="skills-grid">
             {skillsList.map(skill => (
-              <label key={skill} className="checkbox-label">
-                <input 
-                  type="checkbox" 
-                  onChange={() => handleSkillChange(skill)} 
-                /> {skill}
-              </label>
+              <button
+                type="button"
+                key={skill}
+                className={`skill-chip ${
+                  formData.selectedSkills.includes(skill) ? 'selected' : ''
+                }`}
+                onClick={() => handleSkillChange(skill)}
+              >
+                {skill}
+              </button>
             ))}
           </div>
         </section>
 
-        <section className="form-group">
-          <label>Years of Experience / Taon ng Karanasan</label> 
-          <input type="number" min="0" placeholder="e.g. 5" />
-        </section>
+        {/* Work Details */}
+        <section className="form-section">
+          <h2>Work Details</h2>
 
-        <section className="form-group">
-          <label>Availability / Oras ng Pagtatrabaho</label> 
-          <input type="text" placeholder="e.g. Mon-Fri, 8am-5pm" />
-        </section>
+          <label>
+            Years of Experience
+            <input
+              type="number"
+              name="experience"
+              min="0"
+              placeholder="Example 5"
+              value={formData.experience}
+              onChange={handleChange}
+            />
+          </label>
 
-        <section className="form-group">
-          <label>Upload Profile Picture / Mag-upload ng Larawan</label> 
-          <input type="file" accept="image/*" />
+          <label>
+            Availability
+            <select
+              name="availability"
+              value={formData.availability}
+              onChange={handleChange}
+            >
+              <option value="">Piliin ang Oras</option>
+              <option>9 - 10 AM</option>
+              <option>10 - 11 AM</option>
+              <option>11 - 12 PM</option>
+              <option>1 - 2 PM</option>
+              <option>2 - 3 PM</option>
+              <option>3 - 4 PM</option>
+            </select>
+          </label>
+
+          <label>
+            Profile Picture
+            <input type="file" accept="image/*" />
+          </label>
         </section>
 
         <button type="submit" className="submit-btn">
           Submit / I-save ang Profile
-        </button> 
+        </button>
       </form>
     </main>
   );

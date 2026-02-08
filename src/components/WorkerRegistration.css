@@ -1,70 +1,101 @@
-/* Mobile-responsive container  */
-.registration-container {
-  max-width: 600px;
-  margin: 20px auto;
-  padding: 15px;
+body {
   font-family: Arial, sans-serif;
+  background-color: white;
+}
+
+.registration-container {
+  max-width: 420px;
+  margin: auto;
+  padding: 1rem;
 }
 
 .form-header {
   text-align: center;
-  margin-bottom: 25px;
-  color: #2c3e50;
+  margin-bottom: 1.5rem;
 }
 
-/* Simple, clean layout for beginner users [cite: 53] */
-.form-group {
+.logo {
+  width: 90px;
+  margin-bottom: 0.5rem;
+  border-radius: 10px;
+}
+
+.form-header h1 {
+  color: #0a7a3d;
+}
+
+.form-header p {
+  font-size: 0.9rem;
+  color: #555;
+}
+
+.registration-form {
+  background: #eefaf0;;
+  padding: 1.5rem;
+  border-radius: 12px;
+}
+
+.form-section {
+  margin-bottom: 1.5rem;
+}
+
+.form-section h2 {
+  font-size: 1rem;
+  margin-bottom: 0.5rem;
+  color: #0a7a3d;
+}
+
+label {
   display: flex;
   flex-direction: column;
-  margin-bottom: 15px;
+  margin-bottom: 0.75rem;
+  font-size: 0.85rem;
 }
 
-.form-group label {
-  font-weight: bold;
-  margin-bottom: 5px;
-  font-size: 0.9rem;
-}
-
-.form-group input, 
-.form-group select {
-  padding: 12px;
+input,
+select {
+  padding: 0.6rem;
+  border-radius: 6px;
   border: 1px solid #ccc;
-  border-radius: 4px;
-  font-size: 1rem; /* Better for mobile tapping */
 }
 
-/* Skills grid for easy selection  */
+.helper-text {
+  font-size: 0.8rem;
+  color: #666;
+  margin-bottom: 0.5rem;
+}
+
 .skills-grid {
-  display: grid;
-  grid-template-columns: 1fr 1fr;
-  gap: 10px;
-  background: #f9f9f9;
-  padding: 10px;
-  border-radius: 4px;
+  display: flex;
+  flex-wrap: wrap;
+  gap: 0.5rem;
 }
 
-.checkbox-label {
-  display: flex;
-  align-items: center;
-  font-size: 0.9rem;
+.skill-chip {
+  padding: 0.5rem 0.8rem;
+  border-radius: 20px;
+  border: 1px solid #0a7a3d;
+  background: white;
+  color: #0a7a3d;
+  cursor: pointer;
+  font-size: 0.8rem;
+}
+
+.skill-chip.selected {
+  background: #0a7a3d;
+  color: white;
 }
 
 .submit-btn {
   width: 100%;
-  padding: 15px;
-  background-color: #27ae60;
+  padding: 0.75rem;
+  background: #0a7a3d;
   color: white;
   border: none;
-  border-radius: 5px;
-  font-size: 1.1rem;
-  font-weight: bold;
+  border-radius: 8px;
+  font-size: 1rem;
   cursor: pointer;
-  margin-top: 20px;
 }
-
-/* Optimize for smartphones  */
-@media (max-width: 480px) {
-  .skills-grid {
-    grid-template-columns: 1fr;
-  }
+.submit-btn:hover {
+  background: #095a2b;
 }
