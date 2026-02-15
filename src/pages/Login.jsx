@@ -1,18 +1,25 @@
 import React, { useState } from 'react';
 import { supabase } from '../services/supabase';
-import { Link, Mail, Lock, Github } from 'lucide-react';
+import { useNavigate, Link } from 'react-router-dom'; 
+import { Mail, Lock, Github } from 'lucide-react';
 import logo from '../assets/logo.png';
 import workspaceImg from '../assets/background.jpg';
 
 const Login = () => {
   const [email, setEmail] = useState('');
   const [password, setPassword] = useState('');
+  
+  const navigate = useNavigate();
 
   const handleLogin = async (e) => {
     e.preventDefault();
     const { error } = await supabase.auth.signInWithPassword({ email, password });
-    if (error) alert(error.message);
-    else window.location.href = '/dashboard';
+    
+    if (error) {
+      alert(error.message);
+    } else {
+      navigate('/dashboard');
+    }
   };
 
   return (
