@@ -1,17 +1,14 @@
-import { BrowserRouter, Routes, Route, Navigate } from 'react-router-dom'
+// 1. Change BrowserRouter to HashRouter
+import { HashRouter as Router, Routes, Route, Navigate } from 'react-router-dom'
 import { useState, useEffect } from 'react'
 import { authService } from './services/authService'
 
 // Pages
 import Login from './pages/Login'
 import Dashboard from './pages/Dashboard'
-//import WorkerManagement from './pages/WorkerManagement'
-//import ServiceRequests from './pages/ServiceRequests'
-//import Predictions from './pages/Predictions'
 
 // Layout
 import Sidebar from './components/layout/Sidebar'
-
 
 function App() {
   const [user, setUser] = useState(null)
@@ -34,27 +31,28 @@ function App() {
 
   if (loading) {
     return (
-      <div className="min-h-screen flex items-center justify-center">
-        <div className="text-2xl">Loading...</div>
+      <div className="min-h-screen flex items-center justify-center bg-skill-light">
+        {/* Added a simple spinner feel */}
+        <div className="animate-spin rounded-full h-12 w-12 border-t-2 border-b-2 border-skill-primary"></div>
       </div>
     )
   }
 
   return (
-    <BrowserRouter>
+    <Router>
       <Routes>
+        {/* Explicit Login Route */}
         <Route path="/login" element={<Login />} />
         
+        {/* Main Application Logic */}
         <Route path="/*" element={
           user ? (
             <div className="flex">
               <Sidebar />
-              <main className="flex-1 bg-gray-100">
+              <main className="flex-1 bg-gray-100 min-h-screen">
                 <Routes>
                   <Route path="/dashboard" element={<Dashboard />} />
-                  {/*<Route path="/workers" element={<WorkerManagement />} />
-                  <Route path="/requests" element={<ServiceRequests />} />
-                  <Route path="/predictions" element={<Predictions />} />*/}
+                  {/* Default inner route */}
                   <Route path="/" element={<Navigate to="/dashboard" replace />} />
                 </Routes>
               </main>
@@ -64,7 +62,7 @@ function App() {
           )
         } />
       </Routes>
-    </BrowserRouter>
+    </Router>
   )
 }
 
