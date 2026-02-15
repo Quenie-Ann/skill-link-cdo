@@ -1,3 +1,4 @@
+<<<<<<< HEAD
 /* Page Layout Fix */
 .page-wrapper {
   display: flex;
@@ -67,3 +68,6 @@ body {
   background-color: #fff;
   border-top: 1px solid #e0e0e0;
 }
+=======
+@import "tailwindcss";
+>>>>>>> 0ed8328 (AppDev-L3: Component design and styling completed)
