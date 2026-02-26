@@ -1,74 +1,128 @@
-import { Link, useLocation, useNavigate } from 'react-router-dom'
+import { useState } from 'react';
+import { Link, useLocation, useNavigate } from 'react-router-dom';
 import { 
-  LogOut, 
-  LayoutDashboard, 
-  Users, 
-  ClipboardList, 
-  BrainCircuit, 
-  BarChart3 
-} from 'lucide-react'; // Professional icons
+  LogOut, Users, ClipboardList, BrainCircuit, 
+  BarChart3, Zap, ChevronLeft, ChevronRight, UserCircle 
+} from 'lucide-react';
 import { supabase } from '../../services/supabase';
 
-export default function Sidebar() {
+export default function Sidebar({ currentUser }) {
+  const [isCollapsed, setIsCollapsed] = useState(false);
   const navigate = useNavigate();
   const location = useLocation();
 
+  // Access user data safely
+  const userRole = currentUser?.role;
+  const userName = currentUser?.full_name || currentUser?.name || 'User';
+
   const handleLogout = async () => {
-    const { error } = await supabase.auth.signOut();
-    if (error) {
-      console.error('Error logging out:', error.message);
-    } else {
-      navigate('/login');
-    }
+    await supabase.auth.signOut();
+    navigate('/login');
   };
 
-  const menuItems = [
-    { path: '/dashboard', label: 'Dashboard', icon: LayoutDashboard },
-    { path: '/workers', label: 'Workers', icon: Users },
-    { path: '/requests', label: 'Service Requests', icon: ClipboardList },
-    { path: '/predictions', label: 'ML Predictions', icon: BrainCircuit },
-    { path: '/analytics', label: 'Analytics', icon: BarChart3 }
-  ];
+  const menuItems = {
+    admin: [
+      { path: '/admin/dashboard', label: 'Dashboard', icon: BarChart3 },
+      { path: '/admin/users', label: 'User Verification', icon: Users },
+      { path: '/admin/requests', label: 'All Requests', icon: ClipboardList },
+    ],
+    worker: [
+      { path: '/worker/dashboard', label: 'Job Matches', icon: Zap },
+      { path: '/worker/history', label: 'My Jobs', icon: ClipboardList },
+      { path: '/worker/profile', label: 'My Skills', icon: BrainCircuit },
+    ],
+    resident: [
+      { path: '/resident/dashboard', label: 'My Requests', icon: ClipboardList },
+      { path: '/resident/directory', label: 'Find Workers', icon: Users },
+    ]
+  };
+
+  const roleLabels = {
+    admin: 'Barangay Admin',
+    worker: 'Skilled Worker',
+    resident: 'Resident'
+  };
 
   return (
-    <aside className="flex flex-col w-64 bg-skill-dark text-white min-h-screen p-6 shadow-xl">
-      {/* Brand Section */}
-      <div className="mb-10 px-4">
-        <h1 className="text-2xl font-bold tracking-tight">Skill-Link CDO</h1>
-        <div className="flex items-center gap-2 mt-1">
-            <span className="w-2 h-2 bg-skill-primary rounded-full animate-pulse"></span>
-            <p className="text-xs text-green-200 uppercase tracking-widest font-semibold">Admin Panel</p>
-        </div>
-      </div>
+    <aside className={`
+      sticky top-0 left-0 
+      flex flex-col 
+      ${isCollapsed ? 'w-20' : 'w-64'} 
+      bg-skill-dark text-white 
+      h-screen 
+      transition-all duration-300 
+      z-40 
+      shadow-2xl 
+      overflow-visible
+    `}>
       
-      {/* Navigation Links */}
-      <nav className="flex-1">
+      {/* TOGGLE BUTTON */}
+      <button 
+        onClick={() => setIsCollapsed(!isCollapsed)}
+        className={`
+          absolute -right-4 top-12 z-50 
+          bg-skill-primary text-white
+          rounded-full p-1.5 
+          border-2 border-skill-dark 
+          hover:scale-125 transition-all
+          shadow-lg
+          flex items-center justify-center
+        `}
+      >
+        {isCollapsed ? <ChevronRight size={18} strokeWidth={3} /> : <ChevronLeft size={18} strokeWidth={3} />}
+      </button>
+
+      {/* 1. Profile Section */}
+      <div className={`flex items-center p-4 mt-6 mb-2 ${isCollapsed ? 'justify-center' : 'gap-3'}`}>
+        <div className="flex-shrink-0">
+          <div className="w-12 h-12 rounded-2xl bg-white/10 border border-white/20 flex items-center justify-center overflow-hidden">
+             {/* If you have a real image URL, use it here, else fallback to icon */}
+             <UserCircle size={32} className="text-skill-primary" />
+          </div>
+        </div>
+        
+        {!isCollapsed && (
+          <div className="overflow-hidden">
+            <h2 className="text-sm font-bold truncate text-white">{userName}</h2>
+            <p className="text-[10px] uppercase tracking-tighter text-skill-primary font-bold">
+              {roleLabels[userRole]}
+            </p>
+          </div>
+        )}
+      </div>
+
+      <div className="mx-4 border-t border-white/5 my-2" />
+
+      {/* 2. Navigation Items */}
+      <nav className="flex-1 px-3 mt-4 overflow-y-auto no-scrollbar">
         <ul className="space-y-2">
-          {menuItems.map((Item) => (
-            <li key={Item.path}>
-              <Link
-                to={Item.path}
-                className={`flex items-center gap-3 px-4 py-3 rounded-xl transition-all duration-200 group
-                  ${location.pathname === Item.path 
-                    ? 'bg-skill-primary text-white shadow-md' 
-                    : 'text-green-100 hover:bg-white/10 hover:translate-x-1'}`}
-              >
-                <Item.icon size={20} className={location.pathname === Item.path ? 'text-white' : 'text-green-300 group-hover:text-white'} />
-                <span className="font-medium">{Item.label}</span>
-              </Link>
-            </li>
-          ))}
+          {menuItems[userRole]?.map((item) => {
+            const isActive = location.pathname === item.path;
+            return (
+              <li key={item.path}>
+                <Link 
+                  to={item.path} 
+                  className={`flex items-center gap-4 px-3 py-3 rounded-xl transition-all duration-200 group
+                    ${isActive ? 'bg-skill-primary text-white shadow-lg shadow-skill-primary/20' : 'hover:bg-white/5 text-gray-400 hover:text-white'}
+                    ${isCollapsed ? 'justify-center' : ''}`}
+                >
+                  <item.icon size={22} className={isActive ? 'text-white' : 'group-hover:text-skill-primary'} />
+                  {!isCollapsed && <span className="font-semibold text-sm whitespace-nowrap">{item.label}</span>}
+                </Link>
+              </li>
+            );
+          })}
         </ul>
       </nav>
 
-      {/* Logout Button Pinned to Bottom */}
-      <div className="pt-6 border-t border-white/10">
+      {/* 3. Logout Section */}
+      <div className="p-4 bg-black/10">
         <button 
           onClick={handleLogout}
-          className="flex items-center gap-3 w-full px-4 py-3 bg-red-500 text-white hover:bg-red-600 rounded-xl transition-all duration-200"
+          className={`flex items-center ${isCollapsed ? 'justify-center' : 'gap-4'} w-full px-4 py-3 text-white-400 bg-red-500 hover:bg-red-600 hover:text-white rounded-xl transition-all group shadow-sm`}
         >
           <LogOut size={20} />
-          <span className="font-semibold">Sign Out</span>
+          {!isCollapsed && <span className="font-bold text-sm">Logout</span>}
         </button>
       </div>
     </aside>
