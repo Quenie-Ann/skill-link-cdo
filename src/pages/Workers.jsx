@@ -5,7 +5,7 @@ import Card from '../components/common/Card'
 export default function Workers() {
   const [workers, setWorkers] = useState([])
 
-  // ✅ NEW: form state (controlled inputs)
+  // Form state (controlled inputs)
   const [fullName, setFullName] = useState("")
   const [email, setEmail] = useState("")
   const [experience, setExperience] = useState("")
@@ -24,7 +24,7 @@ export default function Workers() {
     setWorkers(data || [])
   }
 
-  // ✅ Form submit handler
+  // Form submit handler
   async function handleAddWorker(e) {
     e.preventDefault()
 
@@ -50,7 +50,7 @@ export default function Workers() {
     setRate("")
   }
 
-  // 🔥 Summary calculations
+  // Summary calculations
   const totalWorkers = workers.length
   const averageRating =
     workers.length > 0
@@ -64,7 +64,7 @@ export default function Workers() {
     <div className="p-8">
       <h1 className="text-3xl font-bold mb-8">Workers Management</h1>
 
-      {/* ✅ TASK 2 FORM */}
+      {/* Worker Registraion form */}
       <Card>
         <form onSubmit={handleAddWorker} className="mb-6">
           <h2 className="text-xl font-semibold mb-4">Add New Worker</h2>
@@ -115,7 +115,7 @@ export default function Workers() {
         </form>
       </Card>
 
-      {/* 🔥 Summary Section */}
+      {/* Summary Section */}
       <div className="mb-8 mt-6">
         <Card>
           <div className="flex justify-between items-center">

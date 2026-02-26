@@ -22,7 +22,6 @@ import {
   const fetchRequests = async () => {
     try {
       setLoading(true);
-      // Replace 'service_requests' with your actual table name
       const { data, error } = await supabase
         .from('service_requests')
         .select(`
@@ -149,4 +148,4 @@ import {
     </div>
   );
 }
-export default Requests; // Must include 'default'
+export default Requests;

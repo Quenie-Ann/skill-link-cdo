@@ -1,3 +1,6 @@
+//Sample worker registration form with validation and skill selection. 
+//This is a basic implementation and can be further enhanced with additional features like image upload handling, 
+//integration with backend services, and more advanced UI/UX design.
 import React, { useState } from 'react';
 import Header from '../components/Header';
 import Footer from '../components/Footer';

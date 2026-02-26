@@ -1,7 +1,6 @@
 import React, { useState } from 'react';
 import { supabase } from '../services/supabase';
-import { useNavigate, Link } from 'react-router-dom'; 
-import { Mail, Lock, Github } from 'lucide-react';
+import { useNavigate, Link } from 'react-router-dom';
 import logo from '../assets/logo.png';
 import workspaceImg from '../assets/background.jpg';
 

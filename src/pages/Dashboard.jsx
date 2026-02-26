@@ -10,7 +10,6 @@ import { Users, ClipboardList, Zap, Star, BarChart3 } from 'lucide-react'
 
 export default function Dashboard() {
 
-  // ✅ Existing state (real system data)
   const [stats, setStats] = useState({
     totalWorkers: 0,
     totalRequests: 0,
@@ -18,7 +17,7 @@ export default function Dashboard() {
     avgRating: 0
   })
 
-  // ✅ NEW state for Task 1 (system status)
+  // system status State
   const [systemStatus, setSystemStatus] = useState("Online")
 
   useEffect(() => {
@@ -74,7 +73,6 @@ export default function Dashboard() {
         </p>
       </div>
 
-      {/* ✅ NEW: System Status Section (State-driven UI) */}
       <div className="flex justify-between items-center mb-8 bg-white p-4 rounded-xl shadow">
         <div>
           <p className="text-sm text-gray-500">System Status</p>
