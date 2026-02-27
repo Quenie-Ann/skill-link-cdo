@@ -11,6 +11,10 @@ import AdminDashboard from './pages/admin/AdminDashboard'
 import WorkerDashboard from './pages/worker/WorkerDashboard'
 import ResidentDashboard from './pages/resident/ResidentDashboard'
 
+// Admin Pages (For future expansion)
+import Requests from './pages/admin/Requests'
+import Workers from './pages/admin/Workers'
+
 function App() {
   const [user, setUser] = useState(null)
   const [loading, setLoading] = useState(true)
@@ -128,6 +132,16 @@ function App() {
             <Navigate to="/login" replace />
           )
         }
+      />
+      <Route
+        path="/admin/users"
+        element={user && userRole === 'admin' ? 
+        <ProtectedLayout><Workers /></ProtectedLayout> : <Navigate to="/login" />}
+      />
+      <Route
+        path="/admin/requests"
+        element={user && userRole === 'admin' ? 
+        <ProtectedLayout><Requests /></ProtectedLayout> : <Navigate to="/login" />}
       />
 
       <Route
