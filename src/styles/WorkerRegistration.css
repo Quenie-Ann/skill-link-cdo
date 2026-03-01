@@ -1,0 +1,123 @@
+nbody {
+  font-family: Arial, sans-serif;
+  background-color: white;
+}
+
+.registration-container {
+  max-width: 420px;
+  margin: auto;
+  padding: 1rem;
+}
+
+.form-header {
+  text-align: center;
+  margin-bottom: 0.5rem;
+}
+
+.logo {
+  width: 90px;
+  margin-bottom: 0.5rem;
+  border-radius: 10px;
+}
+
+.form-header h1 {
+  color: #0a7a3d;
+}
+
+.form-header p {
+  font-size: 0.9rem;
+  color: #555;
+}
+
+.page-header {
+  font-size: 1.5rem;
+  color: #002b13;
+  margin-top: 0.5rem;
+}
+
+.registration-form {
+  background: #e4ffe8;;
+  padding: 1.5rem;
+  border-radius: 12px;
+}
+
+.form-section {
+  margin-bottom: 1.5rem;
+}
+
+.form-section h2 {
+  font-size: 1rem;
+  margin-bottom: 0.5rem;
+  color: #0a7a3d;
+}
+
+label {
+  display: flex;
+  flex-direction: column;
+  margin-bottom: 0.75rem;
+  font-size: 0.85rem;
+}
+
+input,
+select {
+  padding: 0.6rem;
+  border-radius: 6px;
+  border: 1px solid #ccc;
+}
+
+.helper-text {
+  font-size: 0.8rem;
+  color: #666;
+  margin-bottom: 0.5rem;
+}
+
+.skills-grid {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 0.5rem;
+}
+
+.skill-chip {
+  padding: 0.5rem 0.8rem;
+  border-radius: 20px;
+  border: 1px solid #0a7a3d;
+  background: white;
+  color: #0a7a3d;
+  cursor: pointer;
+  font-size: 0.8rem;
+}
+
+.skill-chip.selected {
+  background: #0a7a3d;
+  color: white;
+}
+
+.submit-btn {
+  width: 100%;
+  padding: 0.75rem;
+  background: #0a7a3d;
+  color: white;
+  border: none;
+  border-radius: 8px;
+  font-size: 1rem;
+  cursor: pointer;
+}
+.submit-btn:hover {
+  background: #095a2b;
+}
+.error-message {
+  color: #dc2626;
+  font-size: 0.875rem;
+  margin-top: 0.25rem;
+  display: block;
+}
+
+.error-input {
+  border-color: #dc2626 !important;
+  outline-color: #dc2626 !important;
+}
+
+label {
+  display: flex;
+  flex-direction: column;
+}
