@@ -1,9 +1,8 @@
-import React, { useState, useEffect } from 'react';
-import { supabase } from '../../services/supabase';
+import React, { useState } from 'react';
 import { 
   Zap, CheckCircle, Clock, Star, 
-  Search, Sun, Moon, ArrowUpRight, 
-  MapPin, Briefcase, ChevronRight 
+  Sun, Moon, ArrowUpRight, 
+  MapPin, Briefcase, ChevronRight, MoreHorizontal 
 } from 'lucide-react';
 
 export default function WorkerDashboard() {
@@ -171,13 +170,5 @@ function ActivityItem({ icon, color, title, subtitle, time }) {
       </div>
       <p className="text-[10px] text-gray-300 font-bold">{time}</p>
     </div>
-  );
-}
-
-function MoreHorizontal({ size, className }) {
-  return (
-    <svg width={size} height={size} viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" className={className}>
-      <circle cx="12" cy="12" r="1" /><circle cx="19" cy="12" r="1" /><circle cx="5" cy="12" r="1" />
-    </svg>
   );
 }
