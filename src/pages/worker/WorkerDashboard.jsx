@@ -1,4 +1,5 @@
 import React, { useState, useEffect } from 'react';
+import { supabase } from '../../services/supabase';
 import { 
   Zap, CheckCircle, Clock, Star, 
   Search, Sun, Moon, ArrowUpRight, 
