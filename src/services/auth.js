@@ -1,62 +1,40 @@
 // ─ Static Local Auth Service ─
-
-export const STATIC_USERS = [
-  {
-    id: '1',
-    email: 'admin@skilllink.com',
-    password: 'admin123',
-    full_name: 'Barangay Admin',
-    role: 'admin',
-  },
-  {
-    id: '2',
-    email: 'worker@skilllink.com',
-    password: 'worker123',
-    full_name: 'Juan Dela Cruz',
-    role: 'worker',
-  },
-  {
-    id: '3',
-    email: 'resident@skilllink.com',
-    password: 'resident123',
-    full_name: 'Maria Santos',
-    role: 'resident',
-  },
-];
+import { STATIC_USERS } from '../data/mockData';
 
 const SESSION_KEY = 'skilllink_session';
 
 export const localAuth = {
-  /** Sign in with email + password. Returns { user } or throws. */
-  signIn(email, password) {
-    const found = STATIC_USERS.find(
+  // For Login.jsx
+  signIn: (email, password) => {
+    const user = STATIC_USERS.find(
       (u) => u.email === email && u.password === password
     );
-    if (!found) throw new Error('Invalid email or password.');
-    const { password: _pw, ...user } = found; // strip password from session
-    localStorage.setItem(SESSION_KEY, JSON.stringify(user));
-    return { user };
+
+    if (!user) {
+      throw new Error('Invalid email or password');
+    }
+
+    // Create a copy without the password for safety
+    const sessionUser = { ...user };
+    delete sessionUser.password;
+
+    localStorage.setItem(SESSION_KEY, JSON.stringify(sessionUser));
+    return { user: sessionUser };
   },
 
-  /** Sign out and clear session. */
-  signOut() {
+  // For App.jsx (Initial load/session check)
+  getSession: () => {
+    const data = localStorage.getItem(SESSION_KEY);
+    return data ? JSON.parse(data) : null;
+  },
+
+  // 3. For Logout buttons
+  signOut: () => {
     localStorage.removeItem(SESSION_KEY);
   },
 
-  /** Returns the current user from localStorage, or null. */
-  getSession() {
-    try {
-      const raw = localStorage.getItem(SESSION_KEY);
-      return raw ? JSON.parse(raw) : null;
-    } catch {
-      return null;
-    }
-  },
-};
-
-// Static Dashboard Stats
-export const STATIC_STATS = {
-  workers: 24,
-  pending: 5,
-  requests: 61,
+  getCurrentUser: () => {
+    const data = localStorage.getItem(SESSION_KEY);
+    return data ? JSON.parse(data) : null;
+  }
 };
