@@ -1,54 +1,141 @@
 import React, { useState } from 'react';
-import { 
-  Plus, History, Search, MapPin, 
-  ShieldCheck, Sun, Moon, ArrowUpRight, 
-  Wrench, Zap, Hammer, Paintbrush, 
-  ChevronRight, Clock
+import { useNavigate } from 'react-router-dom';
+import {
+  Plus, Search, MapPin, ShieldCheck,
+  Sun, Moon, ArrowUpRight, ChevronRight,
+  Clock, X, ChevronLeft, CheckCircle2,
+  DollarSign, FileText, Calendar, AlertCircle,
 } from 'lucide-react';
+import { 
+  BLANK_FORM,
+  SERVICE_CATEGORIES, 
+  BUDGET_RANGES, 
+  URGENCY_OPTIONS, 
+  SCHEDULE_OPTIONS 
+} from '../../data/mockData';
+import { api } from '../../services/api';
 
 export default function ResidentDashboard() {
+  const navigate = useNavigate();
+
   const [isDarkMode, setIsDarkMode] = useState(false);
-  
-  // Service categories with specific branding
-  const services = [
-    { name: "Plumbing", icon: Wrench, color: "text-blue-500", bg: "bg-blue-50 dark:bg-blue-900/20" },
-    { name: "Electrical", icon: Zap, color: "text-amber-500", bg: "bg-amber-50 dark:bg-amber-900/20" },
-    { name: "Carpentry", icon: Hammer, color: "text-orange-500", bg: "bg-orange-50 dark:bg-orange-900/20" },
-    { name: "Cleaning", icon: Paintbrush, color: "text-emerald-500", bg: "bg-emerald-50 dark:bg-emerald-900/20" },
+  const [modalOpen, setModalOpen]   = useState(false);
+  const [step, setStep]             = useState(1);
+  const [form, setForm]             = useState(BLANK_FORM);
+  const [submitting, setSubmitting] = useState(false);
+  const [formError, setFormError]   = useState('');
+
+  // Recent requests (static for now — replace with api.getRequests() in future)
+  const recentRequests = [
+    { id: 1, title: 'Electrical Repair',  status: 'pending',  statusColor: 'bg-amber-100 text-amber-700 dark:bg-amber-900/30 dark:text-amber-400',   date: 'Today, 2:30 PM'  },
+    { id: 2, title: 'Kitchen Plumbing',   status: 'matched',  statusColor: 'bg-blue-100 text-blue-700 dark:bg-blue-900/30 dark:text-blue-400',        date: 'Feb 24, 2026'    },
   ];
 
+  const selectedCategory = SERVICE_CATEGORIES.find(
+    (c) => c.value === form.service_category
+  );
+
+  // ── Dark mode ──
   const toggleDarkMode = () => {
     setIsDarkMode(!isDarkMode);
     document.documentElement.classList.toggle('dark');
   };
 
+  // ── Modal helpers ──
+  function openModal() {
+    setForm(BLANK_FORM);
+    setStep(1);
+    setFormError('');
+    setModalOpen(true);
+  }
+
+  function closeModal() {
+    setModalOpen(false);
+    setStep(1);
+    setForm(BLANK_FORM);
+    setFormError('');
+  }
+
+  // ── Step validation ──
+  function canProceed() {
+    if (step === 1) return !!form.service_category;
+    if (step === 2)
+      return (
+        !!form.specific_problem &&
+        !!form.budget_range &&
+        !!form.urgency &&
+        !!form.schedule &&
+        form.location.trim().length > 0
+      );
+    return true;
+  }
+
+  // ── Submit ──
+  async function handleSubmit() {
+    setSubmitting(true);
+    setFormError('');
+    try {
+      await api.createRequest({
+        customer_name: 'Maria Santos', // swap with currentUser.full_name when auth is wired
+        service_type:  form.service_category,
+        notes: [
+          `Problem: ${form.specific_problem}`,
+          `Budget: ${BUDGET_RANGES.find((b) => b.value === form.budget_range)?.label}`,
+          `Urgency: ${form.urgency}`,
+          `Schedule: ${form.schedule}`,
+          `Location: ${form.location}`,
+          form.notes ? `Notes: ${form.notes}` : '',
+        ].filter(Boolean).join(' | '),
+      });
+
+      closeModal();
+
+      // Auto-redirect to matched workers with request data
+      navigate('/resident/directory', {
+        state: {
+          matchRequest: {
+            service_category: form.service_category,
+            specific_problem: form.specific_problem,
+            budget_range:     form.budget_range,
+            urgency:          form.urgency,
+            schedule:         form.schedule,
+            location:         form.location,
+          },
+        },
+      });
+    } catch (err) {
+      setFormError(err.message);
+    } finally {
+      setSubmitting(false);
+    }
+  }
+
+  // ── Shared input styles ──
+  const inputCls =
+    'w-full px-4 py-3 bg-skill-light dark:bg-dark-bg border-2 border-transparent focus:border-skill-primary rounded-2xl outline-none transition-all text-sm dark:text-white';
+
   return (
     <div className="min-h-screen bg-skill-light dark:bg-dark-bg transition-colors duration-300">
-      
-      {/* --- THE PREMIUM TOP BAR (Consistent with Admin/Worker) --- */}
+
+      {/* ── Top Bar ── */}
       <header className="sticky top-0 z-30 w-full bg-white dark:bg-dark-card border-b border-skill-primary/10 dark:border-white/5 shadow-sm px-8 py-4">
         <div className="flex justify-between items-center max-w-[1600px] mx-auto">
           <div>
             <h1 className="text-xl font-bold text-skill-dark dark:text-skill-primary">Resident Portal</h1>
             <p className="text-[10px] uppercase tracking-widest text-skill-primary font-bold opacity-70">Community Services</p>
           </div>
-          
           <div className="flex items-center gap-6">
-            {/* Search Input for finding workers/services */}
             <div className="relative hidden md:block">
               <Search className="absolute left-3 top-1/2 -translate-y-1/2 text-skill-primary/40" size={18} />
-              <input 
-                type="text" 
-                placeholder="Search for services..." 
+              <input
+                type="text"
+                placeholder="Search for services..."
                 className="pl-10 pr-4 py-2 bg-skill-light dark:bg-dark-bg rounded-xl border-none text-sm w-72 focus:ring-2 focus:ring-skill-primary outline-none transition-all dark:text-white"
               />
             </div>
-
-            {/* Theme Toggle */}
-            <button 
+            <button
               onClick={toggleDarkMode}
               className="p-2.5 bg-skill-light dark:bg-dark-bg rounded-xl text-skill-dark dark:text-skill-primary border border-skill-primary/10 hover:border-skill-primary transition-all shadow-inner"
-              title="Toggle Theme"
             >
               {isDarkMode ? <Sun size={20} /> : <Moon size={20} />}
             </button>
@@ -56,30 +143,32 @@ export default function ResidentDashboard() {
         </div>
       </header>
 
-      {/* --- MAIN DASHBOARD CONTENT --- */}
+      {/* ── Dashboard Content ── */}
       <main className="p-8 max-w-[1600px] mx-auto">
         <div className="grid grid-cols-12 gap-8">
-          
-          {/* 1. HERO SECTION (Call to Action) */}
+
+          {/* Hero CTA */}
           <div className="col-span-12 lg:col-span-8 bg-gradient-to-br from-skill-dark to-[#064e3b] rounded-4xl p-10 text-white relative overflow-hidden shadow-xl shadow-skill-dark/30">
             <div className="relative z-10 lg:w-3/5">
               <h2 className="text-3xl font-extrabold mb-3">How can we help you today?</h2>
               <p className="text-skill-light/60 mb-8 text-sm leading-relaxed">
                 Connect with barangay-verified workers for all your household needs. Reliable service is just a click away.
               </p>
-              <button className="flex items-center gap-3 bg-skill-primary hover:bg-white hover:text-skill-dark text-white px-8 py-4 rounded-2xl font-bold transition-all group shadow-lg">
+              {/* ← Opens the modal */}
+              <button
+                onClick={openModal}
+                className="flex items-center gap-3 bg-skill-primary hover:bg-white hover:text-skill-dark text-white px-8 py-4 rounded-2xl font-bold transition-all group shadow-lg"
+              >
                 <Plus size={20} className="group-hover:rotate-90 transition-transform" />
                 Book a New Service
               </button>
             </div>
-            
-            {/* Visual Decorative Element */}
             <div className="absolute right-0 top-0 bottom-0 w-1/3 bg-white/5 backdrop-blur-sm hidden lg:flex items-center justify-center">
-               <ShieldCheck size={140} className="text-skill-primary opacity-20" />
+              <ShieldCheck size={140} className="text-skill-primary opacity-20" />
             </div>
           </div>
 
-          {/* 2. SECURITY CARD (Bento Style) */}
+          {/* Security Card */}
           <div className="col-span-12 lg:col-span-4 bg-white dark:bg-dark-card rounded-4xl p-8 shadow-sm border border-skill-primary/5 dark:border-white/5 flex flex-col justify-between">
             <div>
               <div className="flex justify-between items-start mb-6">
@@ -98,72 +187,417 @@ export default function ResidentDashboard() {
             </button>
           </div>
 
-          {/* 3. QUICK SERVICE TILES (Interactive Grid) */}
+          {/* Quick Service Tiles */}
           <div className="col-span-12 lg:col-span-8">
             <h3 className="font-bold text-skill-dark dark:text-white text-xl mb-6">Popular Services</h3>
-            <div className="grid grid-cols-2 md:grid-cols-4 gap-6">
-              {services.map((service) => (
-                <button 
-                  key={service.name} 
-                  className="p-8 bg-white dark:bg-dark-card hover:bg-skill-light dark:hover:bg-dark-bg transition-all rounded-4xl shadow-sm border border-skill-primary/5 group text-center flex flex-col items-center justify-center"
+            <div className="grid grid-cols-2 md:grid-cols-5 gap-4">
+              {SERVICE_CATEGORIES.map((service) => (
+                <button
+                  key={service.value}
+                  onClick={openModal}
+                  className="p-6 bg-white dark:bg-dark-card hover:bg-skill-light dark:hover:bg-dark-bg transition-all rounded-4xl shadow-sm border border-skill-primary/5 group text-center flex flex-col items-center justify-center"
                 >
-                  <div className={`p-5 rounded-3xl mb-4 transition-transform group-hover:scale-110 ${service.bg}`}>
-                    <service.icon className={service.color} size={32} />
+                  <div className={`p-4 rounded-3xl mb-3 transition-transform group-hover:scale-110 ${service.bg}`}>
+                    <service.icon className={service.color} size={28} />
                   </div>
-                  <span className="font-bold text-skill-dark dark:text-white text-sm tracking-tight">
-                    {service.name}
-                  </span>
+                  <span className="font-bold text-skill-dark dark:text-white text-xs tracking-tight">{service.label}</span>
                 </button>
               ))}
             </div>
           </div>
 
-          {/* 4. TRACKING LOGS (Activity Panel) */}
+          {/* My Requests Panel */}
           <div className="col-span-12 lg:col-span-4 bg-white dark:bg-dark-card rounded-4xl p-6 shadow-sm border border-skill-primary/5 dark:border-white/5">
             <div className="flex justify-between items-center mb-6 px-2">
               <h3 className="font-bold text-skill-dark dark:text-white text-lg">My Requests</h3>
               <Clock size={18} className="text-gray-300" />
             </div>
-            
             <div className="space-y-4">
-              <TrackingItem 
-                title="Electrical Repair" 
-                status="Pending Admin" 
-                statusColor="bg-amber-100 text-amber-700 dark:bg-amber-900/30 dark:text-amber-400"
-                date="Today, 2:30 PM" 
-              />
-              <TrackingItem 
-                title="Kitchen Plumbing" 
-                status="Matched" 
-                statusColor="bg-blue-100 text-blue-700 dark:bg-blue-900/30 dark:text-blue-400"
-                date="Feb 24, 2026" 
-              />
+              {recentRequests.map((req) => (
+                <div
+                  key={req.id}
+                  className="p-4 bg-skill-light/30 dark:bg-dark-bg/40 rounded-2xl border border-skill-primary/5 hover:border-skill-primary/30 transition-all cursor-pointer group"
+                >
+                  <div className="flex justify-between items-start mb-3">
+                    <p className="text-sm font-bold text-skill-dark dark:text-white group-hover:text-skill-primary transition-colors">
+                      {req.title}
+                    </p>
+                    <p className="text-[10px] text-gray-400 font-medium">{req.date}</p>
+                  </div>
+                  <div className="flex justify-between items-center">
+                    <span className={`text-[9px] px-2.5 py-1 rounded-full font-bold uppercase tracking-widest ${req.statusColor}`}>
+                      {req.status}
+                    </span>
+                    <ArrowUpRight size={14} className="text-gray-300 group-hover:text-skill-primary" />
+                  </div>
+                </div>
+              ))}
             </div>
-            
-            <button className="w-full mt-6 py-4 rounded-2xl bg-skill-light dark:bg-dark-bg text-skill-dark dark:text-white text-xs font-bold transition-all hover:bg-skill-primary hover:text-white border border-skill-primary/10">
-              View All History
+            <button
+              onClick={() => navigate('/resident/directory')}
+              className="w-full mt-6 py-4 rounded-2xl bg-skill-light dark:bg-dark-bg text-skill-dark dark:text-white text-xs font-bold transition-all hover:bg-skill-primary hover:text-white border border-skill-primary/10"
+            >
+              View All Workers
             </button>
           </div>
 
         </div>
       </main>
+
+      {/* REQUEST MODAL */}
+      {modalOpen && (
+        <div
+          className="fixed inset-0 z-50 flex items-center justify-center p-4 bg-skill-dark/60 backdrop-blur-sm"
+          onClick={closeModal}
+        >
+          <div
+            className="bg-white dark:bg-dark-card rounded-4xl w-full max-w-lg shadow-2xl max-h-[90vh] flex flex-col overflow-hidden"
+            onClick={(e) => e.stopPropagation()}
+          >
+
+            {/* Modal Header */}
+            <div className="flex items-center justify-between px-8 pt-7 pb-4 border-b border-gray-100 dark:border-white/5 flex-shrink-0">
+              <div className="flex items-center gap-3">
+                {step > 1 && (
+                  <button
+                    onClick={() => setStep(step - 1)}
+                    className="p-1.5 hover:bg-skill-light dark:hover:bg-dark-bg rounded-xl transition-all"
+                  >
+                    <ChevronLeft size={18} className="text-skill-dark dark:text-white" />
+                  </button>
+                )}
+                <div>
+                  <h2 className="font-black text-skill-dark dark:text-white text-lg">Book a Service</h2>
+                  <p className="text-[10px] uppercase tracking-widest text-skill-primary font-bold opacity-70">
+                    Step {step} of 3 — {['Choose Service', 'Fill Details', 'Confirm'][step - 1]}
+                  </p>
+                </div>
+              </div>
+              <button
+                onClick={closeModal}
+                className="p-2 hover:bg-skill-light dark:hover:bg-dark-bg rounded-xl transition-all"
+              >
+                <X size={18} className="text-gray-400" />
+              </button>
+            </div>
+
+            {/* Progress Bar */}
+            <div className="flex gap-1.5 px-8 pt-4 flex-shrink-0">
+              {[1, 2, 3].map((s) => (
+                <div
+                  key={s}
+                  className={`h-1.5 flex-1 rounded-full transition-all duration-500 ${
+                    s <= step ? 'bg-skill-primary' : 'bg-gray-200 dark:bg-dark-bg'
+                  }`}
+                />
+              ))}
+            </div>
+
+            {/* Scrollable Body */}
+            <div className="overflow-y-auto flex-1 px-8 py-6">
+
+              {/* ── STEP 1: Service Category ── */}
+              {step === 1 && (
+                <div className="space-y-3">
+                  <p className="text-sm text-gray-500 dark:text-gray-400 mb-4">
+                    What type of service do you need?
+                  </p>
+                  {SERVICE_CATEGORIES.map((cat) => {
+                    const Icon     = cat.icon;
+                    const isActive = form.service_category === cat.value;
+                    return (
+                      <button
+                        key={cat.value}
+                        onClick={() => setForm({ ...form, service_category: cat.value, specific_problem: '' })}
+                        className={`w-full flex items-center gap-4 p-4 rounded-2xl border-2 transition-all text-left ${
+                          isActive
+                            ? 'border-skill-primary bg-skill-primary/5 dark:bg-skill-primary/10'
+                            : 'border-gray-100 dark:border-white/5 bg-skill-light/50 dark:bg-dark-bg/50 hover:border-skill-primary/30'
+                        }`}
+                      >
+                        <div className={`p-3 rounded-xl flex-shrink-0 ${isActive ? 'bg-skill-primary/20' : cat.bg}`}>
+                          <Icon size={22} className={isActive ? 'text-skill-primary' : cat.color} />
+                        </div>
+                        <div className="flex-1">
+                          <p className={`font-black ${isActive ? 'text-skill-primary' : 'text-skill-dark dark:text-white'}`}>
+                            {cat.label}
+                          </p>
+                          <p className="text-[11px] text-gray-400 mt-0.5">
+                            {cat.problems.length} common issues
+                          </p>
+                        </div>
+                        {isActive && <CheckCircle2 size={20} className="text-skill-primary flex-shrink-0" />}
+                      </button>
+                    );
+                  })}
+                </div>
+              )}
+
+              {/* ── STEP 2: Details ── */}
+              {step === 2 && selectedCategory && (
+                <div className="space-y-6">
+
+                  {/* Specific Problem */}
+                  <div>
+                    <label className="block text-xs font-bold text-gray-500 dark:text-gray-400 uppercase tracking-widest mb-3">
+                      What is the problem? <span className="text-red-500">*</span>
+                    </label>
+                    <div className="space-y-2">
+                      {selectedCategory.problems.map((p) => (
+                        <button
+                          key={p}
+                          onClick={() => setForm({ ...form, specific_problem: p })}
+                          className={`w-full flex items-center gap-3 px-4 py-3 rounded-2xl border-2 text-sm font-semibold text-left transition-all ${
+                            form.specific_problem === p
+                              ? 'border-skill-primary bg-skill-primary/5 text-skill-primary dark:bg-skill-primary/10'
+                              : 'border-gray-100 dark:border-white/5 bg-skill-light/50 dark:bg-dark-bg/50 text-gray-600 dark:text-gray-300 hover:border-skill-primary/30'
+                          }`}
+                        >
+                          {form.specific_problem === p
+                            ? <CheckCircle2 size={15} className="text-skill-primary flex-shrink-0" />
+                            : <div className="w-4 h-4 rounded-full border-2 border-gray-300 dark:border-gray-600 flex-shrink-0" />}
+                          {p}
+                        </button>
+                      ))}
+                    </div>
+                  </div>
+
+                  {/* Budget */}
+                  <div>
+                    <label className="block text-xs font-bold text-gray-500 dark:text-gray-400 uppercase tracking-widest mb-3">
+                      Budget <span className="text-red-500">*</span>
+                    </label>
+                    <div className="grid grid-cols-2 gap-2">
+                      {BUDGET_RANGES.map((b) => (
+                        <button
+                          key={b.value}
+                          onClick={() => setForm({ ...form, budget_range: b.value })}
+                          className={`flex items-center gap-2 px-3 py-3 rounded-2xl border-2 text-sm font-bold transition-all ${
+                            form.budget_range === b.value
+                              ? 'border-skill-primary bg-skill-primary text-white'
+                              : 'border-gray-100 dark:border-white/5 bg-skill-light/50 dark:bg-dark-bg/50 text-gray-600 dark:text-gray-300 hover:border-skill-primary/30'
+                          }`}
+                        >
+                          <DollarSign size={14} className={form.budget_range === b.value ? 'text-white' : 'text-gray-400'} />
+                          {b.label}
+                        </button>
+                      ))}
+                    </div>
+                  </div>
+
+                  {/* Urgency */}
+                  <div>
+                    <label className="block text-xs font-bold text-gray-500 dark:text-gray-400 uppercase tracking-widest mb-3">
+                      Urgency <span className="text-red-500">*</span>
+                    </label>
+                    <div className="grid grid-cols-2 gap-2">
+                      {URGENCY_OPTIONS.map((u) => (
+                        <button
+                          key={u.value}
+                          onClick={() => setForm({ ...form, urgency: u.value })}
+                          className={`p-3 rounded-2xl border-2 text-left transition-all ${
+                            form.urgency === u.value
+                              ? 'border-skill-primary bg-skill-primary/5 dark:bg-skill-primary/10'
+                              : 'border-gray-100 dark:border-white/5 bg-skill-light/50 dark:bg-dark-bg/50 hover:border-skill-primary/30'
+                          }`}
+                        >
+                          <p className={`font-black text-sm ${form.urgency === u.value ? 'text-skill-primary' : 'text-skill-dark dark:text-white'}`}>
+                            {u.label}
+                          </p>
+                          <p className="text-[10px] text-gray-400 mt-0.5">{u.desc}</p>
+                        </button>
+                      ))}
+                    </div>
+                  </div>
+
+                  {/* Schedule */}
+                  <div>
+                    <label className="block text-xs font-bold text-gray-500 dark:text-gray-400 uppercase tracking-widest mb-3">
+                      Preferred Schedule <span className="text-red-500">*</span>
+                    </label>
+                    <div className="grid grid-cols-2 gap-2">
+                      {SCHEDULE_OPTIONS.map((s) => (
+                        <button
+                          key={s.value}
+                          onClick={() => setForm({ ...form, schedule: s.value })}
+                          className={`flex items-center gap-2 px-3 py-3 rounded-2xl border-2 text-sm font-bold transition-all ${
+                            form.schedule === s.value
+                              ? 'border-skill-primary bg-skill-primary text-white'
+                              : 'border-gray-100 dark:border-white/5 bg-skill-light/50 dark:bg-dark-bg/50 text-gray-600 dark:text-gray-300 hover:border-skill-primary/30'
+                          }`}
+                        >
+                          <Calendar size={14} className={form.schedule === s.value ? 'text-white' : 'text-gray-400'} />
+                          {s.label}
+                        </button>
+                      ))}
+                    </div>
+                  </div>
+
+                  {/* Location */}
+                  <div>
+                    <label className="block text-xs font-bold text-gray-500 dark:text-gray-400 uppercase tracking-widest mb-3">
+                      Your Location <span className="text-red-500">*</span>
+                    </label>
+                    <div className="relative">
+                      <MapPin className="absolute left-4 top-1/2 -translate-y-1/2 text-gray-400" size={15} />
+                      <input
+                        type="text"
+                        value={form.location}
+                        onChange={(e) => setForm({ ...form, location: e.target.value })}
+                        placeholder="e.g. Brgy. 12, Carmen, CDO"
+                        className={inputCls + ' pl-11'}
+                      />
+                    </div>
+                  </div>
+
+                  {/* Notes (optional) */}
+                  <div>
+                    <label className="block text-xs font-bold text-gray-500 dark:text-gray-400 uppercase tracking-widest mb-3">
+                      Additional Notes
+                      <span className="text-gray-400 font-normal normal-case ml-2">(optional)</span>
+                    </label>
+                    <div className="relative">
+                      <FileText className="absolute left-4 top-4 text-gray-400" size={15} />
+                      <textarea
+                        rows={3}
+                        value={form.notes}
+                        onChange={(e) => setForm({ ...form, notes: e.target.value })}
+                        placeholder="Anything else the worker should know..."
+                        className={inputCls + ' pl-11 resize-none'}
+                      />
+                    </div>
+                  </div>
+
+                </div>
+              )}
+
+              {/* ── STEP 3: Confirm ── */}
+              {step === 3 && selectedCategory && (
+                <div>
+                  <p className="text-sm text-gray-500 dark:text-gray-400 mb-6">
+                    Review your request before we find your matched workers.
+                  </p>
+
+                  <div className="bg-skill-light/50 dark:bg-dark-bg/50 rounded-3xl p-5 space-y-4">
+
+                    <SummaryRow
+                      icon={<selectedCategory.icon size={16} className={selectedCategory.color} />}
+                      bg={selectedCategory.bg}
+                      label="Service"
+                      value={selectedCategory.label}
+                    />
+                    <hr className="border-gray-200 dark:border-white/5" />
+                    <SummaryRow
+                      icon={<FileText size={16} className="text-gray-400" />}
+                      bg="bg-gray-100 dark:bg-dark-bg"
+                      label="Problem"
+                      value={form.specific_problem}
+                    />
+                    <hr className="border-gray-200 dark:border-white/5" />
+                    <SummaryRow
+                      icon={<DollarSign size={16} className="text-emerald-500" />}
+                      bg="bg-emerald-50 dark:bg-emerald-900/20"
+                      label="Budget"
+                      value={BUDGET_RANGES.find((b) => b.value === form.budget_range)?.label}
+                    />
+                    <hr className="border-gray-200 dark:border-white/5" />
+                    <SummaryRow
+                      icon={<AlertCircle size={16} className="text-amber-500" />}
+                      bg="bg-amber-50 dark:bg-amber-900/20"
+                      label="Urgency"
+                      value={`${URGENCY_OPTIONS.find((u) => u.value === form.urgency)?.label} — ${URGENCY_OPTIONS.find((u) => u.value === form.urgency)?.desc}`}
+                    />
+                    <hr className="border-gray-200 dark:border-white/5" />
+                    <SummaryRow
+                      icon={<Calendar size={16} className="text-blue-500" />}
+                      bg="bg-blue-50 dark:bg-blue-900/20"
+                      label="Schedule"
+                      value={SCHEDULE_OPTIONS.find((s) => s.value === form.schedule)?.label}
+                    />
+                    <hr className="border-gray-200 dark:border-white/5" />
+                    <SummaryRow
+                      icon={<MapPin size={16} className="text-red-400" />}
+                      bg="bg-red-50 dark:bg-red-900/20"
+                      label="Location"
+                      value={form.location}
+                    />
+                    {form.notes && (
+                      <>
+                        <hr className="border-gray-200 dark:border-white/5" />
+                        <SummaryRow
+                          icon={<FileText size={16} className="text-gray-400" />}
+                          bg="bg-gray-100 dark:bg-dark-bg"
+                          label="Notes"
+                          value={form.notes}
+                        />
+                      </>
+                    )}
+                  </div>
+
+                  {/* What happens next hint */}
+                  <div className="mt-5 p-4 bg-skill-primary/5 dark:bg-skill-primary/10 rounded-2xl border border-skill-primary/20">
+                    <p className="text-xs text-skill-primary font-bold flex items-center gap-2">
+                      <CheckCircle2 size={14} />
+                      You'll be shown matched workers right after submitting.
+                    </p>
+                  </div>
+
+                  {formError && (
+                    <div className="mt-4 p-4 bg-red-50 dark:bg-red-900/20 border border-red-200 dark:border-red-800 rounded-2xl text-red-600 dark:text-red-400 text-sm flex items-center gap-2">
+                      <AlertCircle size={15} /> {formError}
+                    </div>
+                  )}
+                </div>
+              )}
+
+            </div>
+
+            {/* Modal Footer — Navigation Buttons */}
+            <div className="flex items-center justify-between px-8 pb-7 pt-4 border-t border-gray-100 dark:border-white/5 flex-shrink-0">
+              <button
+                onClick={step > 1 ? () => setStep(step - 1) : closeModal}
+                className="flex items-center gap-2 px-5 py-2.5 rounded-2xl border border-gray-200 dark:border-white/10 text-sm font-bold text-gray-500 dark:text-gray-400 hover:bg-gray-50 dark:hover:bg-dark-bg transition-all"
+              >
+                <ChevronLeft size={15} />
+                {step === 1 ? 'Cancel' : 'Back'}
+              </button>
+
+              {step < 3 ? (
+                <button
+                  disabled={!canProceed()}
+                  onClick={() => setStep(step + 1)}
+                  className="flex items-center gap-2 px-7 py-2.5 bg-skill-primary hover:bg-emerald-600 disabled:opacity-40 disabled:cursor-not-allowed text-white rounded-2xl text-sm font-bold transition-all shadow-lg shadow-skill-primary/20"
+                >
+                  Continue <ChevronRight size={15} />
+                </button>
+              ) : (
+                <button
+                  disabled={submitting}
+                  onClick={handleSubmit}
+                  className="flex items-center gap-2 px-7 py-2.5 bg-skill-primary hover:bg-emerald-600 disabled:opacity-70 text-white rounded-2xl text-sm font-bold transition-all shadow-lg shadow-skill-primary/20"
+                >
+                  {submitting ? 'Submitting...' : 'Find Matched Workers'}
+                  {!submitting && <ChevronRight size={15} />}
+                </button>
+              )}
+            </div>
+
+          </div>
+        </div>
+      )}
+
     </div>
   );
 }
 
-// Reusable Tracking Component for consistency
-function TrackingItem({ title, status, statusColor, date }) {
+// ── Summary Row helper ──
+function SummaryRow({ icon, bg, label, value }) {
   return (
-    <div className="p-4 bg-skill-light/30 dark:bg-dark-bg/40 rounded-2xl border border-skill-primary/5 hover:border-skill-primary/30 transition-all cursor-pointer group">
-      <div className="flex justify-between items-start mb-3">
-        <p className="text-sm font-bold text-skill-dark dark:text-white group-hover:text-skill-primary transition-colors">{title}</p>
-        <p className="text-[10px] text-gray-400 font-medium">{date}</p>
-      </div>
-      <div className="flex justify-between items-center">
-        <span className={`text-[9px] px-2.5 py-1 rounded-full font-bold uppercase tracking-widest ${statusColor}`}>
-          {status}
-        </span>
-        <ArrowUpRight size={14} className="text-gray-300 group-hover:text-skill-primary" />
+    <div className="flex items-center gap-3">
+      <div className={`p-2 rounded-xl flex-shrink-0 ${bg}`}>{icon}</div>
+      <div className="flex-1 min-w-0">
+        <p className="text-[10px] text-gray-400 uppercase tracking-widest font-bold">{label}</p>
+        <p className="text-sm font-semibold text-skill-dark dark:text-white mt-0.5 truncate">{value}</p>
       </div>
     </div>
   );
