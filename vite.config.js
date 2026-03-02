@@ -1,7 +1,8 @@
 import { defineConfig } from 'vite'
 import react from '@vitejs/plugin-react'
 
-export default defineConfig(({ command }) => ({
+export default defineConfig(({ mode }) => ({
   plugins: [react()],
-  base: command === 'build' ? '/skill-link-cdo/' : '/',
+  // If on Vercel, use '/', otherwise use the subfolder
+  base: process.env.VERCEL ? '/' : '/skill-link-cdo/',
 }))
