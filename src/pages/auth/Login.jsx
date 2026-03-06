@@ -63,7 +63,7 @@ const Login = ({ onLoginSuccess }) => { // Added prop to update App.jsx state
 
   return (
     <div className="min-h-screen w-full flex items-center justify-center bg-skill-dark dark:bg-slate-950 p-4 transition-colors duration-500">
-      <div className="flex flex-col md:flex-row w-full max-w-5xl bg-white dark:bg-slate-900 rounded-5xl overflow-hidden shadow-2xl">
+      <div className="flex flex-col md:flex-row w-full max-w-5xl bg-white dark:bg-slate-900 rounded-lg overflow-hidden shadow-2xl">
         
         {/* Left Side */}
         <div className="relative w-full md:w-1/2 h-48 md:h-auto">
@@ -93,7 +93,7 @@ const Login = ({ onLoginSuccess }) => { // Added prop to update App.jsx state
                 <Mail className="absolute left-4 top-1/2 -translate-y-1/2 text-gray-400" size={18} />
                 <input 
                   name="email" type="email" value={formData.email} onChange={handleInput}
-                  className="w-full pl-12 pr-4 py-4 bg-gray-50 dark:bg-slate-800 border-2 rounded-2xl outline-none dark:text-white border-transparent focus:border-skill-primary"
+                  className="w-full pl-12 pr-4 py-4 bg-gray-50 dark:bg-slate-800 border-2 rounded-lg outline-none dark:text-white border-transparent focus:border-skill-primary"
                   placeholder="admin@example.com"
                 />
               </div>
@@ -105,20 +105,20 @@ const Login = ({ onLoginSuccess }) => { // Added prop to update App.jsx state
                 <Lock className="absolute left-4 top-1/2 -translate-y-1/2 text-gray-400" size={18} />
                 <input 
                   name="password" type="password" value={formData.password} onChange={handleInput}
-                  className="w-full pl-12 pr-4 py-4 bg-gray-50 dark:bg-slate-800 border-2 rounded-2xl outline-none dark:text-white border-transparent focus:border-skill-primary"
+                  className="w-full pl-12 pr-4 py-4 bg-gray-50 dark:bg-slate-800 border-2 rounded-lg outline-none dark:text-white border-transparent focus:border-skill-primary"
                   placeholder="••••••••"
                 />
               </div>
             </div>
 
             {loginError && (
-              <div className="p-4 bg-red-50 dark:bg-red-900/20 border border-red-200 rounded-xl text-red-600 text-sm flex items-center gap-2">
+              <div className="p-4 bg-red-50 dark:bg-red-900/20 border border-red-200 rounded-lg text-red-600 text-sm flex items-center gap-2">
                 <AlertCircle size={16} /> {loginError}
               </div>
             )}
 
             <button type="submit" disabled={isLoading}
-              className="w-full py-4 bg-skill-primary hover:bg-emerald-600 text-white font-bold rounded-2xl shadow-lg transition-all"
+              className="w-full py-4 bg-skill-primary hover:bg-emerald-600 text-white font-bold rounded-lg shadow-lg transition-all"
             >
               {isLoading ? "Authenticating..." : "Sign In"}
             </button>

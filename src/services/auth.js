@@ -1,40 +1,84 @@
-// ─ Static Local Auth Service ─
+/**
+ * src/services/auth.js
+ *  LOCAL AUTH SERVICE                                                                                                    │
+ *  Handles sign-in, session persistence, and sign-out for    
+ *  the static mock users defined in mockData.js.             
+ */
+
 import { STATIC_USERS } from '../data/mockData';
 
-const SESSION_KEY = 'skilllink_session';
+const SESSION_KEY = 'barangayskill_session';
 
 export const localAuth = {
-  // For Login.jsx
-  signIn: (email, password) => {
-    const user = STATIC_USERS.find(
-      (u) => u.email === email && u.password === password
+
+  /**
+   * Sign in with email + password.
+   * Used by: Login.jsx
+   */
+  signIn(email, password) {
+    const match = STATIC_USERS.find(
+      (u) => u.email === email && u.password === password,
     );
 
-    if (!user) {
-      throw new Error('Invalid email or password');
+    if (!match) {
+      throw new Error('Invalid email or password. Please try again.');
     }
 
-    // Create a copy without the password for safety
-    const sessionUser = { ...user };
-    delete sessionUser.password;
+    // Strip password before storing — never persist credentials
+    const { password: _pw, ...sessionUser } = match;
 
     localStorage.setItem(SESSION_KEY, JSON.stringify(sessionUser));
     return { user: sessionUser };
   },
 
-  // For App.jsx (Initial load/session check)
-  getSession: () => {
-    const data = localStorage.getItem(SESSION_KEY);
-    return data ? JSON.parse(data) : null;
+  /**
+   * Check for an existing session on app load.
+   * Used by: App.jsx (initial auth gate)
+   */
+  getSession() {
+    const raw = localStorage.getItem(SESSION_KEY);
+    if (!raw) return null;
+
+    try {
+      return JSON.parse(raw);
+    } catch {
+      // Corrupt storage — clear and force re-login
+      localStorage.removeItem(SESSION_KEY);
+      return null;
+    }
   },
 
-  // 3. For Logout buttons
-  signOut: () => {
+  /**
+   * Sign out the current user.
+   * Used by: Sidebar.jsx logout button (all portals)
+   */
+  signOut() {
     localStorage.removeItem(SESSION_KEY);
   },
 
-  getCurrentUser: () => {
-    const data = localStorage.getItem(SESSION_KEY);
-    return data ? JSON.parse(data) : null;
-  }
+  /**
+   * Get the currently logged-in user.
+   * Alias of getSession() — kept for backwards compatibility
+   * with any component that calls localAuth.getCurrentUser().
+   */
+  getCurrentUser() {
+    return this.getSession();
+  },
+
+  /**
+   * Check if a user is currently authenticated.
+   * Convenience helper for route guards.
+   */
+  isAuthenticated() {
+    return this.getSession() !== null;
+  },
+
+  /**
+   * Get the role of the current user.
+   * Used by: App.jsx ProtectedRoute, Sidebar.jsx role checks.
+   */
+  getRole() {
+    const user = this.getSession();
+    return user ? user.role : null;
+  },
 };

@@ -1,82 +1,119 @@
-import React, { useState } from 'react';
+import React, { useState, useEffect } from 'react';
 import { useNavigate } from 'react-router-dom';
+import { useTheme } from '../../context/ThemeContext';
+import NotificationBell from '../../components/common/NotificationBell';
+import RatingModal from '../../components/common/RatingModal';
 import {
   Plus, Search, MapPin, ShieldCheck,
   Sun, Moon, ArrowUpRight, ChevronRight,
   Clock, X, ChevronLeft, CheckCircle2,
   DollarSign, FileText, Calendar, AlertCircle,
+  Zap, Briefcase, XCircle, Star,
 } from 'lucide-react';
-import { 
-  BLANK_FORM,
-  SERVICE_CATEGORIES, 
-  BUDGET_RANGES, 
-  URGENCY_OPTIONS, 
-  SCHEDULE_OPTIONS 
+import {
+  BLANK_FORM, SERVICE_CATEGORIES,
+  BUDGET_RANGES, URGENCY_OPTIONS, SCHEDULE_OPTIONS,
 } from '../../data/mockData';
 import { api } from '../../services/api';
 
+// ── Job status pipeline ──
+const JOB_PIPELINE = [
+  { key: 'pending',     label: 'Pending',    icon: Clock        },
+  { key: 'matched',     label: 'Assigned',   icon: Zap          },
+  { key: 'in_progress', label: 'In Progress',icon: Briefcase    },
+  { key: 'completed',   label: 'Done',       icon: CheckCircle2 },
+];
+
+const STATUS_COLORS = {
+  pending:     'bg-amber-100 text-amber-700 dark:bg-amber-900/30 dark:text-amber-400',
+  matched:     'bg-blue-100 text-blue-700 dark:bg-blue-900/30 dark:text-blue-400',
+  in_progress: 'bg-purple-100 text-purple-700 dark:bg-purple-900/30 dark:text-purple-400',
+  completed:   'bg-emerald-100 text-emerald-700 dark:bg-emerald-900/30 dark:text-emerald-400',
+  cancelled:   'bg-red-100 text-red-700 dark:bg-red-900/30 dark:text-red-400',
+};
+
+// ── Inline job status stepper ──
+function RequestStepper({ status }) {
+  const isCancelled = status === 'cancelled';
+  const currentIdx = JOB_PIPELINE.findIndex((s) => s.key === status);
+  if (isCancelled) {
+    return (
+      <div className="flex items-center gap-1.5 mt-2">
+        <XCircle size={11} className="text-red-400" />
+        <span className="text-[9px] font-bold text-red-500 uppercase tracking-widest">Cancelled</span>
+      </div>
+    );
+  }
+  return (
+    <div className="flex items-center gap-1 mt-2">
+      {JOB_PIPELINE.map((step, idx) => {
+        const isDone   = idx < currentIdx;
+        const isActive = idx === currentIdx;
+        return (
+          <React.Fragment key={step.key}>
+            <div
+              title={step.label}
+              className={`w-4 h-4 rounded-full flex items-center justify-center flex-shrink-0 ${
+                isActive ? 'bg-skill-primary' :
+                isDone   ? 'bg-skill-primary/30' :
+                           'bg-gray-100 dark:bg-dark-bg'
+              }`}
+            >
+              <step.icon size={8} className={
+                isActive ? 'text-white' :
+                isDone   ? 'text-skill-primary' :
+                           'text-gray-300 dark:text-gray-600'
+              } />
+            </div>
+            {idx < JOB_PIPELINE.length - 1 && (
+              <div className={`h-px w-3 flex-shrink-0 ${
+                isDone || isActive ? 'bg-skill-primary/40' : 'bg-gray-200 dark:bg-dark-bg'
+              }`} />
+            )}
+          </React.Fragment>
+        );
+      })}
+    </div>
+  );
+}
+
+// ── Static recent requests — replace with api.getRequests() in Phase 2 ──
 export default function ResidentDashboard() {
   const navigate = useNavigate();
+  const { isDarkMode, toggleDarkMode } = useTheme();
 
-  const [isDarkMode, setIsDarkMode] = useState(false);
-  const [modalOpen, setModalOpen]   = useState(false);
-  const [step, setStep]             = useState(1);
-  const [form, setForm]             = useState(BLANK_FORM);
+  const [requests,   setRequests]   = useState([]);
+  const [modalOpen,  setModalOpen]  = useState(false);
+  const [step,       setStep]       = useState(1);
+  const [form,       setForm]       = useState(BLANK_FORM);
   const [submitting, setSubmitting] = useState(false);
-  const [formError, setFormError]   = useState('');
+  const [formError,  setFormError]  = useState('');
 
-  // Recent requests (static for now — replace with api.getRequests() in future)
-  const recentRequests = [
-    { id: 1, title: 'Electrical Repair',  status: 'pending',  statusColor: 'bg-amber-100 text-amber-700 dark:bg-amber-900/30 dark:text-amber-400',   date: 'Today, 2:30 PM'  },
-    { id: 2, title: 'Kitchen Plumbing',   status: 'matched',  statusColor: 'bg-blue-100 text-blue-700 dark:bg-blue-900/30 dark:text-blue-400',        date: 'Feb 24, 2026'    },
-  ];
+  // Rating modal
+  const [ratingTarget, setRatingTarget] = useState(null); // { job, worker }
 
-  const selectedCategory = SERVICE_CATEGORIES.find(
-    (c) => c.value === form.service_category
-  );
+  // Load resident's requests on mount
+  useEffect(() => {
+    api.getResidentRequests().then(setRequests).catch(console.error);
+  }, []);
 
-  // ── Dark mode ──
-  const toggleDarkMode = () => {
-    setIsDarkMode(!isDarkMode);
-    document.documentElement.classList.toggle('dark');
-  };
+  const selectedCategory = SERVICE_CATEGORIES.find((c) => c.value === form.service_category);
 
-  // ── Modal helpers ──
-  function openModal() {
-    setForm(BLANK_FORM);
-    setStep(1);
-    setFormError('');
-    setModalOpen(true);
-  }
+  function openModal() { setForm(BLANK_FORM); setStep(1); setFormError(''); setModalOpen(true); }
+  function closeModal() { setModalOpen(false); setStep(1); setForm(BLANK_FORM); setFormError(''); }
 
-  function closeModal() {
-    setModalOpen(false);
-    setStep(1);
-    setForm(BLANK_FORM);
-    setFormError('');
-  }
-
-  // ── Step validation ──
   function canProceed() {
     if (step === 1) return !!form.service_category;
-    if (step === 2)
-      return (
-        !!form.specific_problem &&
-        !!form.budget_range &&
-        !!form.urgency &&
-        !!form.schedule &&
-        form.location.trim().length > 0
-      );
+    if (step === 2) return !!form.specific_problem && !!form.budget_range && !!form.urgency && !!form.schedule && form.location.trim().length > 0;
     return true;
   }
 
-  // ── Submit ──
   async function handleSubmit() {
     setSubmitting(true);
     setFormError('');
     try {
       await api.createRequest({
-        customer_name: 'Maria Santos', // swap with currentUser.full_name when auth is wired
+        customer_name: 'Maria Santos',
         service_type:  form.service_category,
         notes: [
           `Problem: ${form.specific_problem}`,
@@ -87,10 +124,7 @@ export default function ResidentDashboard() {
           form.notes ? `Notes: ${form.notes}` : '',
         ].filter(Boolean).join(' | '),
       });
-
       closeModal();
-
-      // Auto-redirect to matched workers with request data
       navigate('/resident/directory', {
         state: {
           matchRequest: {
@@ -110,9 +144,7 @@ export default function ResidentDashboard() {
     }
   }
 
-  // ── Shared input styles ──
-  const inputCls =
-    'w-full px-4 py-3 bg-skill-light dark:bg-dark-bg border-2 border-transparent focus:border-skill-primary rounded-2xl outline-none transition-all text-sm dark:text-white';
+  const inputCls = 'w-full px-4 py-3 bg-skill-light dark:bg-dark-bg border-2 border-transparent focus:border-skill-primary rounded-lg outline-none transition-all text-sm dark:text-white';
 
   return (
     <div className="min-h-screen bg-skill-light dark:bg-dark-bg transition-colors duration-300">
@@ -122,20 +154,23 @@ export default function ResidentDashboard() {
         <div className="flex justify-between items-center max-w-[1600px] mx-auto">
           <div>
             <h1 className="text-xl font-bold text-skill-dark dark:text-skill-primary">Resident Portal</h1>
-            <p className="text-[10px] uppercase tracking-widest text-skill-primary font-bold opacity-70">Community Services</p>
+            <p className="text-[10px] uppercase tracking-widest text-skill-primary font-bold opacity-70">
+              Community Services
+            </p>
           </div>
-          <div className="flex items-center gap-6">
+          <div className="flex items-center gap-3">
             <div className="relative hidden md:block">
               <Search className="absolute left-3 top-1/2 -translate-y-1/2 text-skill-primary/40" size={18} />
               <input
                 type="text"
                 placeholder="Search for services..."
-                className="pl-10 pr-4 py-2 bg-skill-light dark:bg-dark-bg rounded-xl border-none text-sm w-72 focus:ring-2 focus:ring-skill-primary outline-none transition-all dark:text-white"
+                className="pl-10 pr-4 py-2 bg-skill-light dark:bg-dark-bg rounded-xl border-none text-sm w-64 focus:ring-2 focus:ring-skill-primary outline-none transition-all dark:text-white"
               />
             </div>
+            <NotificationBell />
             <button
               onClick={toggleDarkMode}
-              className="p-2.5 bg-skill-light dark:bg-dark-bg rounded-xl text-skill-dark dark:text-skill-primary border border-skill-primary/10 hover:border-skill-primary transition-all shadow-inner"
+              className="p-2.5 bg-skill-light dark:bg-dark-bg rounded-xl text-skill-dark dark:text-skill-primary border border-skill-primary/10 hover:border-skill-primary transition-all"
             >
               {isDarkMode ? <Sun size={20} /> : <Moon size={20} />}
             </button>
@@ -143,118 +178,179 @@ export default function ResidentDashboard() {
         </div>
       </header>
 
-      {/* ── Dashboard Content ── */}
-      <main className="p-8 max-w-[1600px] mx-auto">
-        <div className="grid grid-cols-12 gap-8">
+      <main className="p-8 max-w-[1600px] mx-auto space-y-6">
+
+        {/* ── ROW 1: Hero CTA + Trust Card ── */}
+        <div className="grid grid-cols-12 gap-5">
 
           {/* Hero CTA */}
-          <div className="col-span-12 lg:col-span-8 bg-gradient-to-br from-skill-dark to-[#064e3b] rounded-4xl p-10 text-white relative overflow-hidden shadow-xl shadow-skill-dark/30">
+          <div className="col-span-12 lg:col-span-8 bg-gradient-to-br from-skill-dark to-[#064e3b] rounded-xl p-10 text-white relative overflow-hidden shadow-xl shadow-skill-dark/25">
             <div className="relative z-10 lg:w-3/5">
-              <h2 className="text-3xl font-extrabold mb-3">How can we help you today?</h2>
+              <span className="inline-flex items-center gap-1.5 text-[10px] bg-skill-primary/20 text-skill-primary px-3 py-1.5 rounded-full font-bold uppercase tracking-widest mb-5 border border-skill-primary/20">
+                <ShieldCheck size={10} /> Barangay Verified Workers
+              </span>
+              <h2 className="text-3xl font-extrabold mb-3 leading-tight">
+                How can we help you today?
+              </h2>
               <p className="text-skill-light/60 mb-8 text-sm leading-relaxed">
-                Connect with barangay-verified workers for all your household needs. Reliable service is just a click away.
+                Connect with barangay-verified workers for all your household needs. Reliable service, just a click away.
               </p>
-              {/* ← Opens the modal */}
               <button
                 onClick={openModal}
-                className="flex items-center gap-3 bg-skill-primary hover:bg-white hover:text-skill-dark text-white px-8 py-4 rounded-2xl font-bold transition-all group shadow-lg"
+                className="flex items-center gap-3 bg-skill-primary hover:bg-white hover:text-skill-dark text-white px-8 py-4 rounded-lg font-bold transition-all group shadow-lg shadow-skill-primary/30"
               >
-                <Plus size={20} className="group-hover:rotate-90 transition-transform" />
+                <Plus size={18} className="group-hover:rotate-90 transition-transform duration-300" />
                 Book a New Service
               </button>
             </div>
-            <div className="absolute right-0 top-0 bottom-0 w-1/3 bg-white/5 backdrop-blur-sm hidden lg:flex items-center justify-center">
-              <ShieldCheck size={140} className="text-skill-primary opacity-20" />
+            <div className="absolute right-0 top-0 bottom-0 w-1/3 hidden lg:flex items-center justify-center">
+              <ShieldCheck size={120} className="text-white/5" />
             </div>
+            <div className="absolute -right-8 -bottom-8 w-40 h-40 bg-skill-primary/10 rounded-full blur-3xl" />
           </div>
 
-          {/* Security Card */}
-          <div className="col-span-12 lg:col-span-4 bg-white dark:bg-dark-card rounded-4xl p-8 shadow-sm border border-skill-primary/5 dark:border-white/5 flex flex-col justify-between">
+          {/* Trust / Security Card */}
+          <div className="col-span-12 lg:col-span-4 bg-white dark:bg-dark-card rounded-xl p-8 shadow-sm border border-skill-primary/5 dark:border-white/5 flex flex-col justify-between">
             <div>
-              <div className="flex justify-between items-start mb-6">
-                <div className="p-3 bg-blue-50 dark:bg-blue-900/20 rounded-2xl">
-                  <ShieldCheck className="text-blue-600 dark:text-blue-400" size={26} />
+              <div className="flex justify-between items-start mb-5">
+                <div className="p-3 bg-blue-50 dark:bg-blue-900/20 rounded-lg">
+                  <ShieldCheck className="text-blue-600 dark:text-blue-400" size={24} />
                 </div>
-                <span className="text-[10px] bg-emerald-100 text-emerald-700 px-3 py-1 rounded-full font-bold uppercase tracking-tighter">Verified</span>
+                <span className="text-[9px] bg-emerald-100 dark:bg-emerald-900/20 text-emerald-700 dark:text-emerald-400 px-3 py-1 rounded-full font-black uppercase tracking-widest">
+                  Verified
+                </span>
               </div>
-              <h3 className="font-bold text-skill-dark dark:text-white text-lg leading-tight">Vetted Community Workers</h3>
-              <p className="text-xs text-gray-500 dark:text-gray-400 mt-2">
-                Every worker in Skill-Link CDO undergoes strict background checking by Barangay Administration.
+              <h3 className="font-bold text-skill-dark dark:text-white text-lg leading-tight mb-2">
+                Vetted Community Workers
+              </h3>
+              <p className="text-xs text-gray-500 dark:text-gray-400 leading-relaxed">
+                Every worker undergoes strict background checking by the Barangay Administration before joining.
               </p>
             </div>
-            <button className="mt-6 text-sm font-bold text-skill-primary flex items-center gap-1 hover:gap-2 transition-all">
-              Security Policy <ChevronRight size={14} />
+            <button className="mt-6 text-sm font-bold text-skill-primary flex items-center gap-1.5 hover:gap-2.5 transition-all group">
+              Security Policy
+              <ChevronRight size={14} className="group-hover:translate-x-0.5 transition-transform" />
             </button>
           </div>
+        </div>
 
-          {/* Quick Service Tiles */}
+        {/* ── ROW 2: Service Tiles + My Requests ── */}
+        <div className="grid grid-cols-12 gap-5">
+
+          {/* Popular Services Grid */}
           <div className="col-span-12 lg:col-span-8">
-            <h3 className="font-bold text-skill-dark dark:text-white text-xl mb-6">Popular Services</h3>
-            <div className="grid grid-cols-2 md:grid-cols-5 gap-4">
+            <div className="flex items-center justify-between mb-5">
+              <h3 className="font-bold text-skill-dark dark:text-white text-lg">Popular Services</h3>
+              <button
+                onClick={() => navigate('/resident/directory')}
+                className="text-xs font-bold text-skill-primary flex items-center gap-1 hover:gap-2 transition-all"
+              >
+                Browse all <ChevronRight size={13} />
+              </button>
+            </div>
+            <div className="grid grid-cols-3 md:grid-cols-5 gap-3">
               {SERVICE_CATEGORIES.map((service) => (
                 <button
                   key={service.value}
                   onClick={openModal}
-                  className="p-6 bg-white dark:bg-dark-card hover:bg-skill-light dark:hover:bg-dark-bg transition-all rounded-4xl shadow-sm border border-skill-primary/5 group text-center flex flex-col items-center justify-center"
+                  className="p-5 bg-white dark:bg-dark-card hover:bg-skill-light dark:hover:bg-dark-bg transition-all rounded-xl shadow-sm border border-skill-primary/5 dark:border-white/5 hover:border-skill-primary/20 group text-center flex flex-col items-center justify-center gap-2"
                 >
-                  <div className={`p-4 rounded-3xl mb-3 transition-transform group-hover:scale-110 ${service.bg}`}>
-                    <service.icon className={service.color} size={28} />
+                  <div className={`p-3 rounded-lg transition-transform group-hover:scale-110 ${service.bg}`}>
+                    <service.icon className={service.color} size={24} />
                   </div>
-                  <span className="font-bold text-skill-dark dark:text-white text-xs tracking-tight">{service.label}</span>
+                  <span className="font-bold text-skill-dark dark:text-white text-[10px] tracking-tight leading-tight">
+                    {service.label}
+                  </span>
                 </button>
               ))}
             </div>
           </div>
 
           {/* My Requests Panel */}
-          <div className="col-span-12 lg:col-span-4 bg-white dark:bg-dark-card rounded-4xl p-6 shadow-sm border border-skill-primary/5 dark:border-white/5">
-            <div className="flex justify-between items-center mb-6 px-2">
-              <h3 className="font-bold text-skill-dark dark:text-white text-lg">My Requests</h3>
-              <Clock size={18} className="text-gray-300" />
+          <div className="col-span-12 lg:col-span-4 bg-white dark:bg-dark-card rounded-xl shadow-sm border border-skill-primary/5 dark:border-white/5 overflow-hidden">
+            <div className="px-6 py-5 border-b border-gray-100 dark:border-white/5 flex items-center justify-between">
+              <div>
+                <h3 className="font-bold text-skill-dark dark:text-white">My Requests</h3>
+                <p className="text-[10px] text-gray-400 mt-0.5">Recent activity</p>
+              </div>
+              <Clock size={16} className="text-gray-300" />
             </div>
-            <div className="space-y-4">
-              {recentRequests.map((req) => (
+
+            <div className="divide-y divide-gray-100 dark:divide-white/5">
+              {requests.map((req) => (
                 <div
                   key={req.id}
-                  className="p-4 bg-skill-light/30 dark:bg-dark-bg/40 rounded-2xl border border-skill-primary/5 hover:border-skill-primary/30 transition-all cursor-pointer group"
+                  className="p-5 hover:bg-skill-light/30 dark:hover:bg-dark-bg/30 transition-all cursor-pointer group"
                 >
-                  <div className="flex justify-between items-start mb-3">
-                    <p className="text-sm font-bold text-skill-dark dark:text-white group-hover:text-skill-primary transition-colors">
+                  <div className="flex items-start justify-between mb-2">
+                    <p className="text-sm font-bold text-skill-dark dark:text-white group-hover:text-skill-primary transition-colors leading-tight">
                       {req.title}
                     </p>
-                    <p className="text-[10px] text-gray-400 font-medium">{req.date}</p>
-                  </div>
-                  <div className="flex justify-between items-center">
-                    <span className={`text-[9px] px-2.5 py-1 rounded-full font-bold uppercase tracking-widest ${req.statusColor}`}>
-                      {req.status}
+                    <span className={`flex-shrink-0 text-[9px] ml-2 px-2 py-0.5 rounded-full font-black uppercase tracking-widest ${STATUS_COLORS[req.status]}`}>
+                      {req.status.replace('_', ' ')}
                     </span>
-                    <ArrowUpRight size={14} className="text-gray-300 group-hover:text-skill-primary" />
+                  </div>
+
+                  {/* Pipeline stepper */}
+                  <RequestStepper status={req.status} />
+
+                  <div className="flex items-center justify-between mt-3">
+                    <p className="text-[10px] text-gray-400">{req.date}</p>
+
+                    {/* Rate CTA for completed, unrated jobs */}
+                    {req.status === 'completed' && !req.rating ? (
+                      <button
+                        onClick={(e) => {
+                          e.stopPropagation();
+                          setRatingTarget({
+                            job:    { id: req.id, title: req.title, service: req.service },
+                            worker: { id: req.id, full_name: req.worker, service: req.service },
+                          });
+                        }}
+                        className="flex items-center gap-1 text-[10px] font-black text-amber-600 bg-amber-50 dark:bg-amber-900/20 px-2.5 py-1 rounded-xl hover:bg-amber-100 transition-colors"
+                      >
+                        <Star size={10} className="fill-amber-400 text-amber-400" /> Rate Now
+                      </button>
+                    ) : req.rating ? (
+                      <div className="flex items-center gap-0.5">
+                        {Array.from({ length: 5 }).map((_, i) => (
+                          <Star
+                            key={i}
+                            size={10}
+                            className={i < req.rating ? 'text-amber-400 fill-amber-400' : 'text-gray-200'}
+                          />
+                        ))}
+                      </div>
+                    ) : (
+                      <ArrowUpRight size={13} className="text-gray-300 group-hover:text-skill-primary transition-colors" />
+                    )}
                   </div>
                 </div>
               ))}
             </div>
-            <button
-              onClick={() => navigate('/resident/directory')}
-              className="w-full mt-6 py-4 rounded-2xl bg-skill-light dark:bg-dark-bg text-skill-dark dark:text-white text-xs font-bold transition-all hover:bg-skill-primary hover:text-white border border-skill-primary/10"
-            >
-              View All Workers
-            </button>
-          </div>
 
+            <div className="p-5 border-t border-gray-100 dark:border-white/5">
+              <button
+                onClick={() => navigate('/resident/directory')}
+                className="w-full py-3 rounded-lg bg-skill-light dark:bg-dark-bg text-skill-dark dark:text-white text-xs font-bold hover:bg-skill-primary hover:text-white border border-skill-primary/10 transition-all"
+              >
+                Browse All Workers
+              </button>
+            </div>
+          </div>
         </div>
       </main>
 
-      {/* REQUEST MODAL */}
+      {/* ── SERVICE REQUEST MODAL ── */}
       {modalOpen && (
         <div
           className="fixed inset-0 z-50 flex items-center justify-center p-4 bg-skill-dark/60 backdrop-blur-sm"
           onClick={closeModal}
         >
           <div
-            className="bg-white dark:bg-dark-card rounded-4xl w-full max-w-lg shadow-2xl max-h-[90vh] flex flex-col overflow-hidden"
+            className="bg-white dark:bg-dark-card rounded-xl w-full max-w-lg shadow-2xl max-h-[90vh] flex flex-col overflow-hidden"
             onClick={(e) => e.stopPropagation()}
           >
-
             {/* Modal Header */}
             <div className="flex items-center justify-between px-8 pt-7 pb-4 border-b border-gray-100 dark:border-white/5 flex-shrink-0">
               <div className="flex items-center gap-3">
@@ -263,7 +359,7 @@ export default function ResidentDashboard() {
                     onClick={() => setStep(step - 1)}
                     className="p-1.5 hover:bg-skill-light dark:hover:bg-dark-bg rounded-xl transition-all"
                   >
-                    <ChevronLeft size={18} className="text-skill-dark dark:text-white" />
+                    <ChevronLeft size={16} className="text-skill-dark dark:text-white" />
                   </button>
                 )}
                 <div>
@@ -273,11 +369,8 @@ export default function ResidentDashboard() {
                   </p>
                 </div>
               </div>
-              <button
-                onClick={closeModal}
-                className="p-2 hover:bg-skill-light dark:hover:bg-dark-bg rounded-xl transition-all"
-              >
-                <X size={18} className="text-gray-400" />
+              <button onClick={closeModal} className="p-2 hover:bg-skill-light dark:hover:bg-dark-bg rounded-xl transition-all">
+                <X size={16} className="text-gray-400" />
               </button>
             </div>
 
@@ -293,15 +386,13 @@ export default function ResidentDashboard() {
               ))}
             </div>
 
-            {/* Scrollable Body */}
+            {/* Body */}
             <div className="overflow-y-auto flex-1 px-8 py-6">
 
-              {/* ── STEP 1: Service Category ── */}
+              {/* STEP 1: Service Category */}
               {step === 1 && (
                 <div className="space-y-3">
-                  <p className="text-sm text-gray-500 dark:text-gray-400 mb-4">
-                    What type of service do you need?
-                  </p>
+                  <p className="text-sm text-gray-500 dark:text-gray-400 mb-4">What type of service do you need?</p>
                   {SERVICE_CATEGORIES.map((cat) => {
                     const Icon     = cat.icon;
                     const isActive = form.service_category === cat.value;
@@ -309,37 +400,34 @@ export default function ResidentDashboard() {
                       <button
                         key={cat.value}
                         onClick={() => setForm({ ...form, service_category: cat.value, specific_problem: '' })}
-                        className={`w-full flex items-center gap-4 p-4 rounded-2xl border-2 transition-all text-left ${
+                        className={`w-full flex items-center gap-4 p-4 rounded-lg border-2 transition-all text-left ${
                           isActive
                             ? 'border-skill-primary bg-skill-primary/5 dark:bg-skill-primary/10'
                             : 'border-gray-100 dark:border-white/5 bg-skill-light/50 dark:bg-dark-bg/50 hover:border-skill-primary/30'
                         }`}
                       >
                         <div className={`p-3 rounded-xl flex-shrink-0 ${isActive ? 'bg-skill-primary/20' : cat.bg}`}>
-                          <Icon size={22} className={isActive ? 'text-skill-primary' : cat.color} />
+                          <Icon size={20} className={isActive ? 'text-skill-primary' : cat.color} />
                         </div>
                         <div className="flex-1">
-                          <p className={`font-black ${isActive ? 'text-skill-primary' : 'text-skill-dark dark:text-white'}`}>
+                          <p className={`font-black text-sm ${isActive ? 'text-skill-primary' : 'text-skill-dark dark:text-white'}`}>
                             {cat.label}
                           </p>
-                          <p className="text-[11px] text-gray-400 mt-0.5">
-                            {cat.problems.length} common issues
-                          </p>
+                          <p className="text-[10px] text-gray-400 mt-0.5">{cat.problems.length} common issues</p>
                         </div>
-                        {isActive && <CheckCircle2 size={20} className="text-skill-primary flex-shrink-0" />}
+                        {isActive && <CheckCircle2 size={18} className="text-skill-primary flex-shrink-0" />}
                       </button>
                     );
                   })}
                 </div>
               )}
 
-              {/* ── STEP 2: Details ── */}
+              {/* STEP 2: Details */}
               {step === 2 && selectedCategory && (
                 <div className="space-y-6">
-
                   {/* Specific Problem */}
                   <div>
-                    <label className="block text-xs font-bold text-gray-500 dark:text-gray-400 uppercase tracking-widest mb-3">
+                    <label className="block text-[10px] font-bold text-gray-400 uppercase tracking-widest mb-3">
                       What is the problem? <span className="text-red-500">*</span>
                     </label>
                     <div className="space-y-2">
@@ -347,15 +435,15 @@ export default function ResidentDashboard() {
                         <button
                           key={p}
                           onClick={() => setForm({ ...form, specific_problem: p })}
-                          className={`w-full flex items-center gap-3 px-4 py-3 rounded-2xl border-2 text-sm font-semibold text-left transition-all ${
+                          className={`w-full flex items-center gap-3 px-4 py-3 rounded-lg border-2 text-sm font-semibold text-left transition-all ${
                             form.specific_problem === p
                               ? 'border-skill-primary bg-skill-primary/5 text-skill-primary dark:bg-skill-primary/10'
                               : 'border-gray-100 dark:border-white/5 bg-skill-light/50 dark:bg-dark-bg/50 text-gray-600 dark:text-gray-300 hover:border-skill-primary/30'
                           }`}
                         >
                           {form.specific_problem === p
-                            ? <CheckCircle2 size={15} className="text-skill-primary flex-shrink-0" />
-                            : <div className="w-4 h-4 rounded-full border-2 border-gray-300 dark:border-gray-600 flex-shrink-0" />}
+                            ? <CheckCircle2 size={14} className="text-skill-primary flex-shrink-0" />
+                            : <div className="w-3.5 h-3.5 rounded-full border-2 border-gray-300 dark:border-gray-600 flex-shrink-0" />}
                           {p}
                         </button>
                       ))}
@@ -364,21 +452,18 @@ export default function ResidentDashboard() {
 
                   {/* Budget */}
                   <div>
-                    <label className="block text-xs font-bold text-gray-500 dark:text-gray-400 uppercase tracking-widest mb-3">
+                    <label className="block text-[10px] font-bold text-gray-400 uppercase tracking-widest mb-3">
                       Budget <span className="text-red-500">*</span>
                     </label>
                     <div className="grid grid-cols-2 gap-2">
                       {BUDGET_RANGES.map((b) => (
-                        <button
-                          key={b.value}
-                          onClick={() => setForm({ ...form, budget_range: b.value })}
-                          className={`flex items-center gap-2 px-3 py-3 rounded-2xl border-2 text-sm font-bold transition-all ${
+                        <button key={b.value} onClick={() => setForm({ ...form, budget_range: b.value })}
+                          className={`flex items-center gap-2 px-3 py-3 rounded-lg border-2 text-sm font-bold transition-all ${
                             form.budget_range === b.value
                               ? 'border-skill-primary bg-skill-primary text-white'
                               : 'border-gray-100 dark:border-white/5 bg-skill-light/50 dark:bg-dark-bg/50 text-gray-600 dark:text-gray-300 hover:border-skill-primary/30'
-                          }`}
-                        >
-                          <DollarSign size={14} className={form.budget_range === b.value ? 'text-white' : 'text-gray-400'} />
+                          }`}>
+                          <DollarSign size={13} className={form.budget_range === b.value ? 'text-white' : 'text-gray-400'} />
                           {b.label}
                         </button>
                       ))}
@@ -387,23 +472,18 @@ export default function ResidentDashboard() {
 
                   {/* Urgency */}
                   <div>
-                    <label className="block text-xs font-bold text-gray-500 dark:text-gray-400 uppercase tracking-widest mb-3">
+                    <label className="block text-[10px] font-bold text-gray-400 uppercase tracking-widest mb-3">
                       Urgency <span className="text-red-500">*</span>
                     </label>
                     <div className="grid grid-cols-2 gap-2">
                       {URGENCY_OPTIONS.map((u) => (
-                        <button
-                          key={u.value}
-                          onClick={() => setForm({ ...form, urgency: u.value })}
-                          className={`p-3 rounded-2xl border-2 text-left transition-all ${
+                        <button key={u.value} onClick={() => setForm({ ...form, urgency: u.value })}
+                          className={`p-3 rounded-lg border-2 text-left transition-all ${
                             form.urgency === u.value
                               ? 'border-skill-primary bg-skill-primary/5 dark:bg-skill-primary/10'
                               : 'border-gray-100 dark:border-white/5 bg-skill-light/50 dark:bg-dark-bg/50 hover:border-skill-primary/30'
-                          }`}
-                        >
-                          <p className={`font-black text-sm ${form.urgency === u.value ? 'text-skill-primary' : 'text-skill-dark dark:text-white'}`}>
-                            {u.label}
-                          </p>
+                          }`}>
+                          <p className={`font-black text-sm ${form.urgency === u.value ? 'text-skill-primary' : 'text-skill-dark dark:text-white'}`}>{u.label}</p>
                           <p className="text-[10px] text-gray-400 mt-0.5">{u.desc}</p>
                         </button>
                       ))}
@@ -412,21 +492,18 @@ export default function ResidentDashboard() {
 
                   {/* Schedule */}
                   <div>
-                    <label className="block text-xs font-bold text-gray-500 dark:text-gray-400 uppercase tracking-widest mb-3">
+                    <label className="block text-[10px] font-bold text-gray-400 uppercase tracking-widest mb-3">
                       Preferred Schedule <span className="text-red-500">*</span>
                     </label>
                     <div className="grid grid-cols-2 gap-2">
                       {SCHEDULE_OPTIONS.map((s) => (
-                        <button
-                          key={s.value}
-                          onClick={() => setForm({ ...form, schedule: s.value })}
-                          className={`flex items-center gap-2 px-3 py-3 rounded-2xl border-2 text-sm font-bold transition-all ${
+                        <button key={s.value} onClick={() => setForm({ ...form, schedule: s.value })}
+                          className={`flex items-center gap-2 px-3 py-3 rounded-lg border-2 text-sm font-bold transition-all ${
                             form.schedule === s.value
                               ? 'border-skill-primary bg-skill-primary text-white'
                               : 'border-gray-100 dark:border-white/5 bg-skill-light/50 dark:bg-dark-bg/50 text-gray-600 dark:text-gray-300 hover:border-skill-primary/30'
-                          }`}
-                        >
-                          <Calendar size={14} className={form.schedule === s.value ? 'text-white' : 'text-gray-400'} />
+                          }`}>
+                          <Calendar size={13} className={form.schedule === s.value ? 'text-white' : 'text-gray-400'} />
                           {s.label}
                         </button>
                       ))}
@@ -435,130 +512,84 @@ export default function ResidentDashboard() {
 
                   {/* Location */}
                   <div>
-                    <label className="block text-xs font-bold text-gray-500 dark:text-gray-400 uppercase tracking-widest mb-3">
+                    <label className="block text-[10px] font-bold text-gray-400 uppercase tracking-widest mb-3">
                       Your Location <span className="text-red-500">*</span>
                     </label>
                     <div className="relative">
-                      <MapPin className="absolute left-4 top-1/2 -translate-y-1/2 text-gray-400" size={15} />
-                      <input
-                        type="text"
-                        value={form.location}
-                        onChange={(e) => setForm({ ...form, location: e.target.value })}
+                      <MapPin className="absolute left-4 top-1/2 -translate-y-1/2 text-gray-400" size={14} />
+                      <input type="text" value={form.location} onChange={(e) => setForm({ ...form, location: e.target.value })}
                         placeholder="e.g. Brgy. 12, Carmen, CDO"
-                        className={inputCls + ' pl-11'}
-                      />
+                        className={inputCls + ' pl-10'} />
                     </div>
                   </div>
 
-                  {/* Notes (optional) */}
+                  {/* Notes */}
                   <div>
-                    <label className="block text-xs font-bold text-gray-500 dark:text-gray-400 uppercase tracking-widest mb-3">
+                    <label className="block text-[10px] font-bold text-gray-400 uppercase tracking-widest mb-3">
                       Additional Notes
                       <span className="text-gray-400 font-normal normal-case ml-2">(optional)</span>
                     </label>
                     <div className="relative">
-                      <FileText className="absolute left-4 top-4 text-gray-400" size={15} />
-                      <textarea
-                        rows={3}
-                        value={form.notes}
-                        onChange={(e) => setForm({ ...form, notes: e.target.value })}
+                      <FileText className="absolute left-4 top-4 text-gray-400" size={14} />
+                      <textarea rows={3} value={form.notes} onChange={(e) => setForm({ ...form, notes: e.target.value })}
                         placeholder="Anything else the worker should know..."
-                        className={inputCls + ' pl-11 resize-none'}
-                      />
+                        className={inputCls + ' pl-10 resize-none'} />
                     </div>
                   </div>
-
                 </div>
               )}
 
-              {/* ── STEP 3: Confirm ── */}
+              {/* STEP 3: Confirm */}
               {step === 3 && selectedCategory && (
                 <div>
-                  <p className="text-sm text-gray-500 dark:text-gray-400 mb-6">
-                    Review your request before we find your matched workers.
+                  <p className="text-sm text-gray-500 dark:text-gray-400 mb-5">
+                    Review your request before we find matched workers.
                   </p>
-
-                  <div className="bg-skill-light/50 dark:bg-dark-bg/50 rounded-3xl p-5 space-y-4">
-
-                    <SummaryRow
-                      icon={<selectedCategory.icon size={16} className={selectedCategory.color} />}
-                      bg={selectedCategory.bg}
-                      label="Service"
-                      value={selectedCategory.label}
-                    />
-                    <hr className="border-gray-200 dark:border-white/5" />
-                    <SummaryRow
-                      icon={<FileText size={16} className="text-gray-400" />}
-                      bg="bg-gray-100 dark:bg-dark-bg"
-                      label="Problem"
-                      value={form.specific_problem}
-                    />
-                    <hr className="border-gray-200 dark:border-white/5" />
-                    <SummaryRow
-                      icon={<DollarSign size={16} className="text-emerald-500" />}
-                      bg="bg-emerald-50 dark:bg-emerald-900/20"
-                      label="Budget"
-                      value={BUDGET_RANGES.find((b) => b.value === form.budget_range)?.label}
-                    />
-                    <hr className="border-gray-200 dark:border-white/5" />
-                    <SummaryRow
-                      icon={<AlertCircle size={16} className="text-amber-500" />}
-                      bg="bg-amber-50 dark:bg-amber-900/20"
-                      label="Urgency"
-                      value={`${URGENCY_OPTIONS.find((u) => u.value === form.urgency)?.label} — ${URGENCY_OPTIONS.find((u) => u.value === form.urgency)?.desc}`}
-                    />
-                    <hr className="border-gray-200 dark:border-white/5" />
-                    <SummaryRow
-                      icon={<Calendar size={16} className="text-blue-500" />}
-                      bg="bg-blue-50 dark:bg-blue-900/20"
-                      label="Schedule"
-                      value={SCHEDULE_OPTIONS.find((s) => s.value === form.schedule)?.label}
-                    />
-                    <hr className="border-gray-200 dark:border-white/5" />
-                    <SummaryRow
-                      icon={<MapPin size={16} className="text-red-400" />}
-                      bg="bg-red-50 dark:bg-red-900/20"
-                      label="Location"
-                      value={form.location}
-                    />
-                    {form.notes && (
-                      <>
-                        <hr className="border-gray-200 dark:border-white/5" />
-                        <SummaryRow
-                          icon={<FileText size={16} className="text-gray-400" />}
-                          bg="bg-gray-100 dark:bg-dark-bg"
-                          label="Notes"
-                          value={form.notes}
-                        />
-                      </>
-                    )}
+                  <div className="bg-skill-light/50 dark:bg-dark-bg/50 rounded-xl p-5 space-y-4">
+                    {[
+                      { icon: <selectedCategory.icon size={15} className={selectedCategory.color} />, bg: selectedCategory.bg, label: 'Service',  value: selectedCategory.label },
+                      { icon: <FileText size={15} className="text-gray-400" />,                       bg: 'bg-gray-100 dark:bg-dark-bg',            label: 'Problem',  value: form.specific_problem },
+                      { icon: <DollarSign size={15} className="text-emerald-500" />,                  bg: 'bg-emerald-50 dark:bg-emerald-900/20',   label: 'Budget',   value: BUDGET_RANGES.find((b) => b.value === form.budget_range)?.label },
+                      { icon: <AlertCircle size={15} className="text-amber-500" />,                   bg: 'bg-amber-50 dark:bg-amber-900/20',       label: 'Urgency',  value: URGENCY_OPTIONS.find((u) => u.value === form.urgency)?.label },
+                      { icon: <Calendar size={15} className="text-blue-500" />,                       bg: 'bg-blue-50 dark:bg-blue-900/20',         label: 'Schedule', value: SCHEDULE_OPTIONS.find((s) => s.value === form.schedule)?.label },
+                      { icon: <MapPin size={15} className="text-red-400" />,                          bg: 'bg-red-50 dark:bg-red-900/20',           label: 'Location', value: form.location },
+                    ].map(({ icon, bg, label, value }, i, arr) => (
+                      <React.Fragment key={label}>
+                        <div className="flex items-center gap-3">
+                          <div className={`p-2 rounded-xl flex-shrink-0 ${bg}`}>{icon}</div>
+                          <div className="flex-1 min-w-0">
+                            <p className="text-[9px] text-gray-400 uppercase tracking-widest font-bold">{label}</p>
+                            <p className="text-sm font-semibold text-skill-dark dark:text-white mt-0.5 truncate">{value}</p>
+                          </div>
+                        </div>
+                        {i < arr.length - 1 && <hr className="border-gray-200 dark:border-white/5" />}
+                      </React.Fragment>
+                    ))}
                   </div>
 
-                  {/* What happens next hint */}
-                  <div className="mt-5 p-4 bg-skill-primary/5 dark:bg-skill-primary/10 rounded-2xl border border-skill-primary/20">
+                  <div className="mt-4 p-4 bg-skill-primary/5 dark:bg-skill-primary/10 rounded-lg border border-skill-primary/20">
                     <p className="text-xs text-skill-primary font-bold flex items-center gap-2">
-                      <CheckCircle2 size={14} />
-                      You'll be shown matched workers right after submitting.
+                      <CheckCircle2 size={13} />
+                      Matched workers will appear right after submitting.
                     </p>
                   </div>
 
                   {formError && (
-                    <div className="mt-4 p-4 bg-red-50 dark:bg-red-900/20 border border-red-200 dark:border-red-800 rounded-2xl text-red-600 dark:text-red-400 text-sm flex items-center gap-2">
-                      <AlertCircle size={15} /> {formError}
+                    <div className="mt-4 p-4 bg-red-50 dark:bg-red-900/20 border border-red-200 dark:border-red-800 rounded-lg text-red-600 dark:text-red-400 text-sm flex items-center gap-2">
+                      <AlertCircle size={14} /> {formError}
                     </div>
                   )}
                 </div>
               )}
-
             </div>
 
-            {/* Modal Footer — Navigation Buttons */}
+            {/* Footer */}
             <div className="flex items-center justify-between px-8 pb-7 pt-4 border-t border-gray-100 dark:border-white/5 flex-shrink-0">
               <button
                 onClick={step > 1 ? () => setStep(step - 1) : closeModal}
-                className="flex items-center gap-2 px-5 py-2.5 rounded-2xl border border-gray-200 dark:border-white/10 text-sm font-bold text-gray-500 dark:text-gray-400 hover:bg-gray-50 dark:hover:bg-dark-bg transition-all"
+                className="flex items-center gap-2 px-5 py-2.5 rounded-lg border border-gray-200 dark:border-white/10 text-sm font-bold text-gray-500 dark:text-gray-400 hover:bg-gray-50 dark:hover:bg-dark-bg transition-all"
               >
-                <ChevronLeft size={15} />
+                <ChevronLeft size={14} />
                 {step === 1 ? 'Cancel' : 'Back'}
               </button>
 
@@ -566,39 +597,38 @@ export default function ResidentDashboard() {
                 <button
                   disabled={!canProceed()}
                   onClick={() => setStep(step + 1)}
-                  className="flex items-center gap-2 px-7 py-2.5 bg-skill-primary hover:bg-emerald-600 disabled:opacity-40 disabled:cursor-not-allowed text-white rounded-2xl text-sm font-bold transition-all shadow-lg shadow-skill-primary/20"
+                  className="flex items-center gap-2 px-7 py-2.5 bg-skill-primary hover:bg-emerald-600 disabled:opacity-40 disabled:cursor-not-allowed text-white rounded-lg text-sm font-bold transition-all shadow-lg shadow-skill-primary/20"
                 >
-                  Continue <ChevronRight size={15} />
+                  Continue <ChevronRight size={14} />
                 </button>
               ) : (
                 <button
                   disabled={submitting}
                   onClick={handleSubmit}
-                  className="flex items-center gap-2 px-7 py-2.5 bg-skill-primary hover:bg-emerald-600 disabled:opacity-70 text-white rounded-2xl text-sm font-bold transition-all shadow-lg shadow-skill-primary/20"
+                  className="flex items-center gap-2 px-7 py-2.5 bg-skill-primary hover:bg-emerald-600 disabled:opacity-70 text-white rounded-lg text-sm font-bold transition-all shadow-lg shadow-skill-primary/20"
                 >
                   {submitting ? 'Submitting...' : 'Find Matched Workers'}
-                  {!submitting && <ChevronRight size={15} />}
+                  {!submitting && <ChevronRight size={14} />}
                 </button>
               )}
             </div>
-
           </div>
         </div>
       )}
 
-    </div>
-  );
-}
-
-// ── Summary Row helper ──
-function SummaryRow({ icon, bg, label, value }) {
-  return (
-    <div className="flex items-center gap-3">
-      <div className={`p-2 rounded-xl flex-shrink-0 ${bg}`}>{icon}</div>
-      <div className="flex-1 min-w-0">
-        <p className="text-[10px] text-gray-400 uppercase tracking-widest font-bold">{label}</p>
-        <p className="text-sm font-semibold text-skill-dark dark:text-white mt-0.5 truncate">{value}</p>
-      </div>
+      {/* ── Rating Modal — triggered from "Rate Now" CTA ── */}
+      {ratingTarget && (
+        <RatingModal
+          job={ratingTarget.job}
+          worker={ratingTarget.worker}
+          onSubmit={(data) => {
+            console.log('Rating submitted:', data);
+            // In Phase 2: await api.submitRating(data); then update local state
+            setRatingTarget(null);
+          }}
+          onSkip={() => setRatingTarget(null)}
+        />
+      )}
     </div>
   );
 }
