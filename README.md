@@ -54,11 +54,7 @@ npm run dev
 
 ## 🌍 Deployment
 
-The project is deployed using GitHub Pages via the `gh-pages` branch.
-
-```bash
-npm run deploy
-```
+The project is deployed using Vercel
 
 ---
 
@@ -66,7 +62,6 @@ npm run deploy
 
 - Mobile-first design
 - Clear form sections
-- Bilingual labels (English / Filipino)
 - Large touch-friendly inputs
 
 ---
@@ -76,7 +71,6 @@ npm run deploy
 - ML-based worker-job matching
 - Pricing recommendations
 - Ratings and reviews
-- Admin dashboard
 - Demand forecasting
 
 ---
