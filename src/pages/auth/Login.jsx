@@ -83,7 +83,7 @@ const Login = ({ onLoginSuccess }) => { // Added prop to update App.jsx state
 
           <div className="mb-8">
             <h2 className="text-3xl font-extrabold text-skill-dark dark:text-skill-primary">Welcome Back</h2>
-            <p className="text-gray-500 dark:text-gray-400 mt-2">Sign in to your demo account</p>
+            <p className="text-gray-500 dark:text-gray-400 mt-2">Sign in to your account</p>
           </div>
 
           <form onSubmit={handleSubmit} className="space-y-5">
