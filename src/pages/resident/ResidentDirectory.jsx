@@ -1,4 +1,5 @@
-import React, { useState, useEffect } from 'react';
+import React, { useState, useEffect, useMemo } from 'react';
+import { useLocation, useNavigate } from 'react-router-dom';
 import { useTheme } from '../../context/ThemeContext';
 import NotificationBell from '../../components/common/NotificationBell';
 import RatingModal from '../../components/common/RatingModal';
@@ -6,22 +7,28 @@ import {
   Search, Sun, Moon, Star, MapPin,
   BadgeCheck, Phone, Clock, ChevronRight,
   SlidersHorizontal, X, CheckCircle2,
-  Briefcase, User, Award,
+  Briefcase, User, Award, Zap, ArrowLeft,
 } from 'lucide-react';
 import { api } from '../../services/api';
 import { SERVICE_CONFIG, SERVICE_FILTERS } from '../../data/mockData';
 
 export default function ResidentDirectory() {
   const { isDarkMode, toggleDarkMode } = useTheme();
+  const location  = useLocation();
+  const navigate  = useNavigate();
+
+  // MatchRequest is passed via navigate state from ResidentDashboard after form submit.
+  const matchRequest = location.state?.matchRequest ?? null;
+
   const [workers,        setWorkers]        = useState([]);
   const [loading,        setLoading]        = useState(true);
   const [searchTerm,     setSearchTerm]     = useState('');
   const [activeFilter,   setActiveFilter]   = useState('All');
   const [selectedWorker, setSelectedWorker] = useState(null);
 
-  // Track booked workers + which ones need rating
-  const [bookedIds,    setBookedIds]    = useState([]);
-  const [ratingTarget, setRatingTarget] = useState(null); // { job, worker }
+  // Track offer-sent workers (replaces generic "booked")
+  const [offeredIds,   setOfferedIds]   = useState([]);
+  const [ratingTarget, setRatingTarget] = useState(null);
 
   useEffect(() => {
     const loadWorkers = async () => {
@@ -38,7 +45,25 @@ export default function ResidentDirectory() {
     loadWorkers();
   }, []);
 
-  const filtered = workers.filter((w) => {
+  // Derive mock ML match scores based on the submitted matchRequest.
+  // For the demo, we seed a deterministic score per worker so ranked order is stable.
+  const workersWithScores = useMemo(() => {
+    if (!matchRequest) return workers.map((w) => ({ ...w, match_score: null }));
+    return workers
+      .map((w) => {
+        // Seed score: base from rating (0–5 → 0–50), bonus if service matches (30),
+        // small variation per worker id so scores differ visibly.
+        const serviceBonus  = w.service === matchRequest.service_category ? 30 : 0;
+        const ratingContrib = Math.round((w.rating || 0) * 10);
+        const variation     = ((w.id * 7) % 15) - 7; // deterministic spread –7..+7
+        const score         = Math.min(99, Math.max(50, ratingContrib + serviceBonus + variation));
+        return { ...w, match_score: score };
+      })
+      // Sort descending by ML match score
+      .sort((a, b) => b.match_score - a.match_score);
+  }, [workers, matchRequest]);
+
+  const filtered = workersWithScores.filter((w) => {
     const matchSearch =
       w.full_name?.toLowerCase().includes(searchTerm.toLowerCase()) ||
       w.service?.toLowerCase().includes(searchTerm.toLowerCase()) ||
@@ -48,22 +73,25 @@ export default function ResidentDirectory() {
     return matchSearch && matchFilter;
   });
 
-  function handleBook(worker) {
-    setBookedIds((prev) => [...prev, worker.id]);
+  // "Send Offer" — sets offer state and closes modal
+  function handleSendOffer(worker) {
+    setOfferedIds((prev) => [...prev, worker.id]);
     setSelectedWorker(null);
-    // "Book Now" here is a manual request trigger — worker still needs ML confirmation.
-}
+  }
 
   return (
     <div className="min-h-screen bg-skill-light dark:bg-dark-bg transition-colors duration-300">
 
-      {/* ── Top Bar ── */}
+      {/* Top Bar */}
       <header className="sticky top-0 z-30 w-full bg-white dark:bg-dark-card border-b border-skill-primary/10 dark:border-white/5 shadow-sm px-8 py-4">
         <div className="flex justify-between items-center max-w-[1600px] mx-auto">
           <div>
-            <h1 className="text-xl font-bold text-skill-dark dark:text-skill-primary">Find Workers</h1>
+            {/* This is the ML results screen — not a general browse directory */}
+            <h1 className="text-xl font-bold text-skill-dark dark:text-skill-primary">
+              {matchRequest ? 'Matched Workers' : 'Find Workers'}
+            </h1>
             <p className="text-[10px] uppercase tracking-widest text-skill-primary font-bold opacity-70">
-              Worker Directory
+              {matchRequest ? 'ML Match Results' : 'Worker Directory'}
             </p>
           </div>
           <div className="flex items-center gap-3">
@@ -90,7 +118,54 @@ export default function ResidentDirectory() {
 
       <main className="p-8 max-w-[1600px] mx-auto">
 
-        {/* ── Filter Pills ── */}
+      {/* Gate — if no job request was submitted, direct resident to submit one first */}
+      {!matchRequest && (
+        <div className="mb-6 p-6 bg-white dark:bg-dark-card rounded-xl border border-skill-primary/10 dark:border-white/5 shadow-sm flex items-start gap-4">
+          <div className="p-3 bg-amber-50 dark:bg-amber-900/20 rounded-xl flex-shrink-0">
+            <Zap size={20} className="text-amber-500" />
+          </div>
+          <div className="flex-1">
+            <p className="font-bold text-skill-dark dark:text-white text-sm mb-1">
+              Submit a request to see your matched workers
+            </p>
+            <p className="text-xs text-gray-500 dark:text-gray-400 leading-relaxed">
+              In Skill-Link CDO, the ML engine ranks workers specifically for your job. Browse below is a preview only — go back to your dashboard and book a service to see your personalised ranked results.
+            </p>
+          </div>
+          <button
+            onClick={() => navigate('/resident/dashboard')}
+            className="flex items-center gap-1.5 text-xs font-bold text-skill-primary hover:text-emerald-600 flex-shrink-0 transition-colors"
+          >
+            <ArrowLeft size={13} /> Dashboard
+          </button>
+        </div>
+      )}
+
+      {/* Context banner — shows what request these results are for */}
+      {matchRequest && (
+        <div className="mb-6 p-4 bg-skill-primary/5 dark:bg-skill-primary/10 rounded-xl border border-skill-primary/20 flex items-center gap-4">
+          <div className="p-2.5 bg-skill-primary/10 rounded-xl flex-shrink-0">
+            <Zap size={16} className="text-skill-primary" />
+          </div>
+          <div className="flex-1 min-w-0">
+            <p className="text-xs font-black text-skill-primary uppercase tracking-widest mb-0.5">ML Match Results</p>
+            <p className="text-sm font-semibold text-skill-dark dark:text-white truncate">
+              {matchRequest.service_category} · {matchRequest.specific_problem}
+            </p>
+            <p className="text-[10px] text-gray-400 mt-0.5">
+              Workers ranked by ML score for your specific request · {matchRequest.location}
+            </p>
+          </div>
+          <button
+            onClick={() => navigate('/resident/dashboard')}
+            className="flex items-center gap-1.5 text-xs font-bold text-gray-400 hover:text-skill-primary flex-shrink-0 transition-colors"
+          >
+            <ArrowLeft size={13} /> Back
+          </button>
+        </div>
+      )}
+
+        {/* Filter Pills */}
         <div className="flex items-center gap-2 mb-8 overflow-x-auto pb-2">
           <SlidersHorizontal size={16} className="text-skill-primary flex-shrink-0" />
           {SERVICE_FILTERS.map((f) => {
@@ -116,7 +191,7 @@ export default function ResidentDirectory() {
           </span>
         </div>
 
-        {/* ── Worker Cards ── */}
+        {/* Worker Cards */}
         {loading ? (
           <div className="flex justify-center py-24">
             <div className="animate-spin rounded-full h-10 w-10 border-t-2 border-b-2 border-skill-primary" />
@@ -135,16 +210,16 @@ export default function ResidentDirectory() {
         ) : (
           <div className="grid grid-cols-1 md:grid-cols-2 xl:grid-cols-3 gap-5">
             {filtered.map((worker) => {
-              const cfg      = SERVICE_CONFIG[worker.service] || SERVICE_CONFIG['Plumbing'];
-              const Icon     = cfg.icon;
-              const isBooked = bookedIds.includes(worker.id);
+              const cfg       = SERVICE_CONFIG[worker.service] || SERVICE_CONFIG['Plumbing'];
+              const Icon      = cfg.icon;
+              const isOffered = offeredIds.includes(worker.id);
 
               return (
                 <div
                   key={worker.id}
-                  onClick={() => !isBooked && setSelectedWorker(worker)}
+                  onClick={() => !isOffered && setSelectedWorker(worker)}
                   className={`bg-white dark:bg-dark-card rounded-xl p-6 shadow-sm border transition-all group ${
-                    isBooked
+                    isOffered
                       ? 'border-emerald-200 dark:border-emerald-800 cursor-default opacity-70'
                       : 'border-skill-primary/5 dark:border-white/5 hover:border-skill-primary/30 hover:shadow-md cursor-pointer'
                   }`}
@@ -167,10 +242,18 @@ export default function ResidentDirectory() {
                         <p className={`text-[10px] font-bold mt-0.5 ${cfg.color}`}>{worker.service}</p>
                       </div>
                     </div>
-                    <div className="flex items-center gap-1 bg-amber-50 dark:bg-amber-900/20 px-2.5 py-1.5 rounded-xl flex-shrink-0">
-                      <Star size={11} className="text-amber-400 fill-amber-400" />
-                      <span className="text-xs font-black text-amber-600 dark:text-amber-400">{worker.rating}</span>
-                    </div>
+                    {/* ML match score badge — shown only when request context exists */}
+                    {worker.match_score !== null ? (
+                      <div className="flex items-center gap-1 bg-skill-primary/10 border border-skill-primary/20 px-2.5 py-1.5 rounded-xl flex-shrink-0">
+                        <Zap size={10} className="text-skill-primary" />
+                        <span className="text-xs font-black text-skill-primary">{worker.match_score}%</span>
+                      </div>
+                    ) : (
+                      <div className="flex items-center gap-1 bg-amber-50 dark:bg-amber-900/20 px-2.5 py-1.5 rounded-xl flex-shrink-0">
+                        <Star size={11} className="text-amber-400 fill-amber-400" />
+                        <span className="text-xs font-black text-amber-600 dark:text-amber-400">{worker.rating}</span>
+                      </div>
+                    )}
                   </div>
 
                   {/* Skills */}
@@ -200,22 +283,24 @@ export default function ResidentDirectory() {
                   {/* Footer */}
                   <div className="flex items-center justify-between pt-4 border-t border-gray-100 dark:border-white/5">
                     <div>
-                      <p className="text-[10px] text-gray-400">{worker.jobs} jobs · {worker.experience_years} yrs exp</p>
+                      <p className="text-[10px] text-gray-400">{worker.jobs_done} jobs · {worker.experience_years} yrs exp</p>
+                      {/* /hr → /day */}
                       <p className="text-lg font-black text-skill-dark dark:text-white">
-                        ₱{worker.hourly_rate}
-                        <span className="text-xs font-normal text-gray-400">/hr</span>
+                        ₱{worker.daily_rate}
+                        <span className="text-xs font-normal text-gray-400">/day</span>
                       </p>
                     </div>
-                    {isBooked ? (
+                    {/* "Offer Sent" state instead of "Requested"; "Send Offer" instead of "Book Now" */}
+                    {isOffered ? (
                       <span className="flex items-center gap-1.5 px-4 py-2 bg-emerald-100 dark:bg-emerald-900/20 text-emerald-700 dark:text-emerald-400 rounded-lg text-xs font-black">
-                        <CheckCircle2 size={12} /> Requested
+                        <CheckCircle2 size={12} /> Offer Sent
                       </span>
                     ) : (
                       <button
                         onClick={(e) => { e.stopPropagation(); setSelectedWorker(worker); }}
                         className="flex items-center gap-1.5 px-4 py-2 bg-skill-primary hover:bg-emerald-600 text-white rounded-lg text-xs font-bold transition-all shadow-md shadow-skill-primary/20"
                       >
-                        Book Now <ChevronRight size={13} />
+                        Send Offer <ChevronRight size={13} />
                       </button>
                     )}
                   </div>
@@ -226,7 +311,7 @@ export default function ResidentDirectory() {
         )}
       </main>
 
-      {/* ── Worker Detail Modal ── */}
+      {/* Worker Detail Modal */}
       {selectedWorker && (
         <div
           className="fixed inset-0 z-50 flex items-center justify-center p-4 bg-skill-dark/60 backdrop-blur-sm"
@@ -283,7 +368,7 @@ export default function ResidentDirectory() {
               <div className="grid grid-cols-3 gap-3">
                 {[
                   { label: 'Rating',   value: <>{selectedWorker.rating}<Star size={13} className="text-amber-400 fill-amber-400 inline ml-0.5" /></> },
-                  { label: 'Jobs Done',value: selectedWorker.jobs },
+                  { label: 'Jobs Done',value: selectedWorker.jobs_done },
                   { label: 'Yrs Exp.', value: selectedWorker.experience_years },
                 ].map(({ label, value }) => (
                   <div key={label} className="bg-skill-light dark:bg-dark-bg rounded-lg p-4 text-center">
@@ -296,10 +381,10 @@ export default function ResidentDirectory() {
               {/* Contact details */}
               <div className="space-y-3">
                 {[
-                  { icon: MapPin,  value: selectedWorker.location   },
-                  { icon: Phone,   value: selectedWorker.phone       },
-                  { icon: Clock,   value: `Available: ${selectedWorker.availability}` },
-                  { icon: Briefcase, value: `₱${selectedWorker.hourly_rate}/hr` },
+                  { icon: MapPin,    value: selectedWorker.location   },
+                  { icon: Phone,     value: selectedWorker.phone       },
+                  { icon: Clock,     value: `Available: ${selectedWorker.availability}` },
+                  { icon: Briefcase, value: `₱${selectedWorker.daily_rate}/day` }, // R-05: /hr → /day
                 ].map(({ icon: Icon, value }) => (
                   <p key={value} className="flex items-center gap-3 text-sm text-gray-600 dark:text-gray-300">
                     <Icon size={14} className="text-skill-primary flex-shrink-0" /> {value}
@@ -316,22 +401,34 @@ export default function ResidentDirectory() {
                 ))}
               </div>
 
-              {/* ML match note */}
-              <div className="p-4 bg-skill-primary/5 dark:bg-skill-primary/10 rounded-lg border border-skill-primary/20">
-                <p className="text-xs text-skill-primary font-bold flex items-start gap-2">
-                  <CheckCircle2 size={13} className="mt-0.5 flex-shrink-0" />
-                  Submitting a request notifies the matching engine — you'll be assigned the best available worker automatically.
+              {/* Show ML match score in modal if available */}
+              {selectedWorker.match_score !== null && (
+                <div className="flex items-center gap-3 p-4 bg-skill-primary/5 dark:bg-skill-primary/10 rounded-lg border border-skill-primary/20">
+                  <Zap size={16} className="text-skill-primary flex-shrink-0" />
+                  <div>
+                    <p className="text-xs font-black text-skill-primary">{selectedWorker.match_score}% ML Match Score</p>
+                    <p className="text-[10px] text-gray-400 mt-0.5">Ranked #{filtered.findIndex(w => w.id === selectedWorker.id) + 1} for your request</p>
+                  </div>
+                </div>
+              )}
+
+              {/* Replaced auto-assignment language with accurate Model B description */}
+              <div className="p-4 bg-skill-light dark:bg-dark-bg rounded-lg border border-skill-primary/10">
+                <p className="text-xs text-gray-600 dark:text-gray-300 font-medium leading-relaxed flex items-start gap-2">
+                  <CheckCircle2 size={13} className="text-skill-primary mt-0.5 flex-shrink-0" />
+                  You are sending an offer to this worker. They will review your request and accept or decline.
                 </p>
               </div>
             </div>
 
             {/* Footer */}
             <div className="px-7 pb-7 pt-4 border-t border-gray-100 dark:border-white/5 flex-shrink-0">
+              {/* "Send Offer" — resident initiates offer, worker accepts or declines */}
               <button
-                onClick={() => handleBook(selectedWorker)}
+                onClick={() => handleSendOffer(selectedWorker)}
                 className="w-full py-4 bg-skill-primary hover:bg-emerald-600 text-white font-black rounded-lg transition-all shadow-lg shadow-skill-primary/20 text-sm active:scale-[0.98]"
               >
-                Request {selectedWorker.full_name} — ₱{selectedWorker.hourly_rate}/hr
+                Send Offer to {selectedWorker.full_name} — ₱{selectedWorker.daily_rate}/day
               </button>
             </div>
           </div>

@@ -5,9 +5,10 @@ import {
   ACTIVITY_FEED, MOCK_PROFILE, WORKER_STATS,
   JOB_HISTORY, MOCK_INCOMING_JOB, MOCK_ACTIVE_JOB,
   RESIDENT_REQUESTS, INITIAL_NOTIFICATIONS,
+  MOCK_RESIDENTS,
 } from '../data/mockData';
 
-// ── Set to true for demo / set to false for live backend ──
+// Set to true for demo / set to false for live backend 
 const USE_MOCK = true;
 
 const BASE_URL = import.meta.env.VITE_API_URL || 'http://localhost:3001/api';
@@ -93,6 +94,15 @@ export const api = {
       ? mock({ id: Date.now(), ...body })
       : request('POST', '/workers', body),
 
+  getResidents: () =>
+  USE_MOCK
+    ? mock(MOCK_RESIDENTS)
+    : request('GET', '/residents'),
+
+  verifyResident: (id, isVerified) =>
+  USE_MOCK
+    ? mock({ id, is_verified: isVerified })
+    : request('PATCH', `/residents/${id}/verify`, { is_verified: isVerified }),
 
   // ADMIN — Requests
   // All service requests for Admin Requests page and AdminDashboard.

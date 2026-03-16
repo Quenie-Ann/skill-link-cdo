@@ -16,23 +16,25 @@ import {
 } from '../../data/mockData';
 import { api } from '../../services/api';
 
-// ── Job status pipeline ──
+
+// Job status pipeline — R-06: SRS v1.0 Section 3.2 documented statuses
 const JOB_PIPELINE = [
-  { key: 'pending',     label: 'Pending',    icon: Clock        },
-  { key: 'matched',     label: 'Assigned',   icon: Zap          },
-  { key: 'in_progress', label: 'In Progress',icon: Briefcase    },
-  { key: 'completed',   label: 'Done',       icon: CheckCircle2 },
+  { key: 'pending_match',  label: 'Pending Match',  icon: Clock        },
+  { key: 'offer_sent',     label: 'Offer Sent',     icon: Zap          },
+  { key: 'offer_accepted', label: 'Offer Accepted', icon: Briefcase    },
+  { key: 'completed',      label: 'Done',           icon: CheckCircle2 },
 ];
 
+// Status badge colours keyed to documented status values
 const STATUS_COLORS = {
-  pending:     'bg-amber-100 text-amber-700 dark:bg-amber-900/30 dark:text-amber-400',
-  matched:     'bg-blue-100 text-blue-700 dark:bg-blue-900/30 dark:text-blue-400',
-  in_progress: 'bg-purple-100 text-purple-700 dark:bg-purple-900/30 dark:text-purple-400',
-  completed:   'bg-emerald-100 text-emerald-700 dark:bg-emerald-900/30 dark:text-emerald-400',
-  cancelled:   'bg-red-100 text-red-700 dark:bg-red-900/30 dark:text-red-400',
+  pending_match:  'bg-amber-100 text-amber-700 dark:bg-amber-900/30 dark:text-amber-400',
+  offer_sent:     'bg-blue-100 text-blue-700 dark:bg-blue-900/30 dark:text-blue-400',
+  offer_accepted: 'bg-purple-100 text-purple-700 dark:bg-purple-900/30 dark:text-purple-400',
+  completed:      'bg-emerald-100 text-emerald-700 dark:bg-emerald-900/30 dark:text-emerald-400',
+  cancelled:      'bg-red-100 text-red-700 dark:bg-red-900/30 dark:text-red-400',
 };
 
-// ── Inline job status stepper ──
+// Inline job status stepper 
 function RequestStepper({ status }) {
   const isCancelled = status === 'cancelled';
   const currentIdx = JOB_PIPELINE.findIndex((s) => s.key === status);
@@ -77,7 +79,7 @@ function RequestStepper({ status }) {
   );
 }
 
-// ── Static recent requests — replace with api.getRequests() in Phase 2 ──
+// Static recent requests — replace with api.getRequests() in Phase 2 
 export default function ResidentDashboard() {
   const navigate = useNavigate();
   const { isDarkMode, toggleDarkMode } = useTheme();
@@ -90,7 +92,7 @@ export default function ResidentDashboard() {
   const [formError,  setFormError]  = useState('');
 
   // Rating modal
-  const [ratingTarget, setRatingTarget] = useState(null); // { job, worker }
+  const [ratingTarget, setRatingTarget] = useState(null);
 
   // Load resident's requests on mount
   useEffect(() => {
@@ -149,7 +151,7 @@ export default function ResidentDashboard() {
   return (
     <div className="min-h-screen bg-skill-light dark:bg-dark-bg transition-colors duration-300">
 
-      {/* ── Top Bar ── */}
+      {/* Top Bar */}
       <header className="sticky top-0 z-30 w-full bg-white dark:bg-dark-card border-b border-skill-primary/10 dark:border-white/5 shadow-sm px-8 py-4">
         <div className="flex justify-between items-center max-w-[1600px] mx-auto">
           <div>
@@ -180,7 +182,7 @@ export default function ResidentDashboard() {
 
       <main className="p-8 max-w-[1600px] mx-auto space-y-6">
 
-        {/* ── ROW 1: Hero CTA + Trust Card ── */}
+        {/* ROW 1: Hero CTA + Trust Card */}
         <div className="grid grid-cols-12 gap-5">
 
           {/* Hero CTA */}
@@ -234,7 +236,7 @@ export default function ResidentDashboard() {
           </div>
         </div>
 
-        {/* ── ROW 2: Service Tiles + My Requests ── */}
+        {/* ROW 2: Service Tiles + My Requests */}
         <div className="grid grid-cols-12 gap-5">
 
           {/* Popular Services Grid */}
@@ -287,7 +289,7 @@ export default function ResidentDashboard() {
                       {req.title}
                     </p>
                     <span className={`flex-shrink-0 text-[9px] ml-2 px-2 py-0.5 rounded-full font-black uppercase tracking-widest ${STATUS_COLORS[req.status]}`}>
-                      {req.status.replace('_', ' ')}
+                      {req.status.replace(/_/g, ' ')}
                     </span>
                   </div>
 
@@ -341,7 +343,7 @@ export default function ResidentDashboard() {
         </div>
       </main>
 
-      {/* ── SERVICE REQUEST MODAL ── */}
+      {/* SERVICE REQUEST MODAL */}
       {modalOpen && (
         <div
           className="fixed inset-0 z-50 flex items-center justify-center p-4 bg-skill-dark/60 backdrop-blur-sm"
@@ -543,7 +545,7 @@ export default function ResidentDashboard() {
               {step === 3 && selectedCategory && (
                 <div>
                   <p className="text-sm text-gray-500 dark:text-gray-400 mb-5">
-                    Review your request before we find matched workers.
+                    Review your request before submitting.
                   </p>
                   <div className="bg-skill-light/50 dark:bg-dark-bg/50 rounded-xl p-5 space-y-4">
                     {[
@@ -567,11 +569,25 @@ export default function ResidentDashboard() {
                     ))}
                   </div>
 
-                  <div className="mt-4 p-4 bg-skill-primary/5 dark:bg-skill-primary/10 rounded-lg border border-skill-primary/20">
-                    <p className="text-xs text-skill-primary font-bold flex items-center gap-2">
-                      <CheckCircle2 size={13} />
-                      Matched workers will appear right after submitting.
+                  {/* What happens next — ML results → resident selects → sends offer */}
+                  <div className="mt-4 p-4 bg-skill-primary/5 dark:bg-skill-primary/10 rounded-lg border border-skill-primary/20 space-y-2">
+                    <p className="text-xs font-black text-skill-primary flex items-center gap-2">
+                      <Zap size={13} /> What happens next
                     </p>
+                    <ol className="space-y-1.5 pl-1">
+                      {[
+                        'ML engine ranks verified workers matching your request',
+                        'You review the ranked list and choose your preferred worker',
+                        'You send an offer — the worker accepts or declines',
+                      ].map((step, i) => (
+                        <li key={i} className="flex items-start gap-2 text-[11px] text-gray-500 dark:text-gray-400">
+                          <span className="w-4 h-4 rounded-full bg-skill-primary/20 text-skill-primary font-black text-[9px] flex items-center justify-center flex-shrink-0 mt-0.5">
+                            {i + 1}
+                          </span>
+                          {step}
+                        </li>
+                      ))}
+                    </ol>
                   </div>
 
                   {formError && (
@@ -584,34 +600,35 @@ export default function ResidentDashboard() {
             </div>
 
             {/* Footer */}
-            <div className="flex items-center justify-between px-8 pb-7 pt-4 border-t border-gray-100 dark:border-white/5 flex-shrink-0">
-              <button
-                onClick={step > 1 ? () => setStep(step - 1) : closeModal}
-                className="flex items-center gap-2 px-5 py-2.5 rounded-lg border border-gray-200 dark:border-white/10 text-sm font-bold text-gray-500 dark:text-gray-400 hover:bg-gray-50 dark:hover:bg-dark-bg transition-all"
-              >
-                <ChevronLeft size={14} />
-                {step === 1 ? 'Cancel' : 'Back'}
-              </button>
+            <footer>
+              <div className="flex items-center justify-between px-8 pb-7 pt-4 border-t border-gray-100 dark:border-white/5 flex-shrink-0">
+                <button
+                  onClick={step > 1 ? () => setStep(step - 1) : closeModal}
+                  className="px-6 py-2.5 rounded-lg border border-gray-200 dark:border-white/10 text-sm font-bold text-gray-400 hover:bg-gray-50 dark:hover:bg-dark-bg transition-all"
+                >
+                  {step === 1 ? 'Cancel' : 'Back'}
+                </button>
 
-              {step < 3 ? (
-                <button
-                  disabled={!canProceed()}
-                  onClick={() => setStep(step + 1)}
-                  className="flex items-center gap-2 px-7 py-2.5 bg-skill-primary hover:bg-emerald-600 disabled:opacity-40 disabled:cursor-not-allowed text-white rounded-lg text-sm font-bold transition-all shadow-lg shadow-skill-primary/20"
-                >
-                  Continue <ChevronRight size={14} />
-                </button>
-              ) : (
-                <button
-                  disabled={submitting}
-                  onClick={handleSubmit}
-                  className="flex items-center gap-2 px-7 py-2.5 bg-skill-primary hover:bg-emerald-600 disabled:opacity-70 text-white rounded-lg text-sm font-bold transition-all shadow-lg shadow-skill-primary/20"
-                >
-                  {submitting ? 'Submitting...' : 'Find Matched Workers'}
-                  {!submitting && <ChevronRight size={14} />}
-                </button>
-              )}
-            </div>
+                {step < 3 ? (
+                  <button
+                    disabled={!canProceed()}
+                    onClick={() => setStep(step + 1)}
+                    className="flex items-center gap-2 px-7 py-2.5 bg-skill-primary hover:bg-emerald-600 disabled:opacity-40 disabled:cursor-not-allowed text-white rounded-lg text-sm font-bold transition-all shadow-lg shadow-skill-primary/20"
+                  >
+                    Continue <ChevronRight size={14} />
+                  </button>
+                ) : (
+                  <button
+                    disabled={submitting}
+                    onClick={handleSubmit}
+                    className="flex items-center gap-2 px-7 py-2.5 bg-skill-primary hover:bg-emerald-600 disabled:opacity-70 text-white rounded-lg text-sm font-bold transition-all shadow-lg shadow-skill-primary/20"
+                  >
+                    {submitting ? 'Submitting...' : 'Find Matched Workers'}
+                    {!submitting && <ChevronRight size={14} />}
+                  </button>
+                )}
+              </div>
+            </footer>
           </div>
         </div>
       )}

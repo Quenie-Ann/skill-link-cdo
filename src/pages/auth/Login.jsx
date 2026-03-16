@@ -7,14 +7,14 @@ import workspaceImg from '../../assets/background.jpg';
 const Login = ({ onLoginSuccess }) => { // Added prop to update App.jsx state
   const navigate = useNavigate();
 
-  // ── Form & UI State ──
+  // Form & UI State 
   const [formData, setFormData] = useState({ email: "", password: "" });
   const [errors, setErrors] = useState({});
   const [loginError, setLoginError] = useState("");
   const [isLoading, setIsLoading] = useState(false);
   const [isDark, setIsDark] = useState(false);
 
-  // ── Dark Mode Toggle Logic ──
+  // Dark Mode Toggle Logic 
   useEffect(() => {
     if (isDark) document.documentElement.classList.add('dark');
     else document.documentElement.classList.remove('dark');
@@ -34,7 +34,7 @@ const Login = ({ onLoginSuccess }) => { // Added prop to update App.jsx state
     return e;
   }
 
-  // ── UPDATED Submission (Using localAuth.signIn) ──
+  // UPDATED Submission (Using localAuth.signIn) 
   async function handleSubmit(e) {
     e.preventDefault();
     const validationErrors = validate();

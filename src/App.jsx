@@ -9,7 +9,7 @@ import Login from './pages/auth/Login';
 
 // Admin
 import AdminDashboard from './pages/admin/AdminDashboard';
-import Workers        from './pages/admin/Workers';
+import UserVerification        from './pages/admin/UserVerification';
 import Requests       from './pages/admin/Requests';
 
 // Worker
@@ -70,7 +70,7 @@ function App() {
     <Router>
       <Routes>
 
-        {/* ── Login ── */}
+        {/* Login */}
         <Route
           path="/login"
           element={
@@ -80,21 +80,21 @@ function App() {
           }
         />
 
-        {/* ── Admin ── */}
+        {/* Admin */}
         <Route path="/admin/dashboard" element={<ProtectedRoute role="admin"><AdminDashboard /></ProtectedRoute>} />
-        <Route path="/admin/users"     element={<ProtectedRoute role="admin"><Workers /></ProtectedRoute>} />
+        <Route path="/admin/users"     element={<ProtectedRoute role="admin"><UserVerification /></ProtectedRoute>} />
         <Route path="/admin/requests"  element={<ProtectedRoute role="admin"><Requests /></ProtectedRoute>} />
 
-        {/* ── Worker ── */}
+        {/* Worker */}
         <Route path="/worker/dashboard" element={<ProtectedRoute role="worker"><WorkerDashboard /></ProtectedRoute>} />
         <Route path="/worker/history"   element={<ProtectedRoute role="worker"><WorkerHistory /></ProtectedRoute>} />
         <Route path="/worker/profile"   element={<ProtectedRoute role="worker"><WorkerProfile /></ProtectedRoute>} />
 
-        {/* ── Resident ── */}
+        {/* Resident */}
         <Route path="/resident/dashboard" element={<ProtectedRoute role="resident"><ResidentDashboard /></ProtectedRoute>} />
         <Route path="/resident/directory" element={<ProtectedRoute role="resident"><ResidentDirectory /></ProtectedRoute>} />
 
-        {/* ── Fallback ── */}
+        {/* Fallback */}
         <Route path="*" element={<Navigate to="/login" replace />} />
 
       </Routes>

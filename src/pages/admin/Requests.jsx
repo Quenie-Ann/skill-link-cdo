@@ -10,23 +10,21 @@ import {
 import { useTheme } from '../../context/ThemeContext';
 import NotificationBell from '../../components/common/NotificationBell';
 
-// ─────────────────────────────────────────
+
 //  CONFIG
-// ─────────────────────────────────────────
 const PIPELINE = [
-  { key: 'pending',     label: 'Pending',     icon: Clock,        color: 'text-amber-500',   bg: 'bg-amber-50 dark:bg-amber-900/20',    badge: 'bg-amber-100 text-amber-700 dark:bg-amber-900/30 dark:text-amber-400'    },
-  { key: 'matched',     label: 'Assigned',    icon: Zap,          color: 'text-blue-500',    bg: 'bg-blue-50 dark:bg-blue-900/20',      badge: 'bg-blue-100 text-blue-700 dark:bg-blue-900/30 dark:text-blue-400'        },
-  { key: 'in_progress', label: 'In Progress', icon: Briefcase,    color: 'text-purple-500',  bg: 'bg-purple-50 dark:bg-purple-900/20',  badge: 'bg-purple-100 text-purple-700 dark:bg-purple-900/30 dark:text-purple-400' },
-  { key: 'completed',   label: 'Completed',   icon: CheckCircle2, color: 'text-emerald-500', bg: 'bg-emerald-50 dark:bg-emerald-900/20',badge: 'bg-emerald-100 text-emerald-700 dark:bg-emerald-900/30 dark:text-emerald-400'},
-  { key: 'cancelled',   label: 'Cancelled',   icon: XCircle,      color: 'text-red-400',     bg: 'bg-red-50 dark:bg-red-900/20',        badge: 'bg-red-100 text-red-700 dark:bg-red-900/30 dark:text-red-400'            },
+  { key: 'pending_match',   label: 'Pending Match',   icon: Clock,        color: 'text-amber-500',   bg: 'bg-amber-50 dark:bg-amber-900/20',    badge: 'bg-amber-100 text-amber-700 dark:bg-amber-900/30 dark:text-amber-400'    },
+  { key: 'offer_sent',      label: 'Offer Sent',      icon: Zap,          color: 'text-blue-500',    bg: 'bg-blue-50 dark:bg-blue-900/20',      badge: 'bg-blue-100 text-blue-700 dark:bg-blue-900/30 dark:text-blue-400'        },
+  { key: 'offer_accepted',  label: 'Offer Accepted',  icon: Briefcase,    color: 'text-purple-500',  bg: 'bg-purple-50 dark:bg-purple-900/20',  badge: 'bg-purple-100 text-purple-700 dark:bg-purple-900/30 dark:text-purple-400' },
+  { key: 'completed',       label: 'Completed',       icon: CheckCircle2, color: 'text-emerald-500', bg: 'bg-emerald-50 dark:bg-emerald-900/20',badge: 'bg-emerald-100 text-emerald-700 dark:bg-emerald-900/30 dark:text-emerald-400'},
+  { key: 'cancelled',       label: 'Cancelled',       icon: XCircle,      color: 'text-red-400',     bg: 'bg-red-50 dark:bg-red-900/20',        badge: 'bg-red-100 text-red-700 dark:bg-red-900/30 dark:text-red-400'            },
 ];
 const STATUS_MAP  = Object.fromEntries(PIPELINE.map((p) => [p.key, p]));
 const FILTER_TABS = ['All', ...PIPELINE.map((p) => p.key)];
 const PAGE_SIZE   = 10;
 
-// ─────────────────────────────────────────
+
 //  PIPELINE STEPPER  (compact, for table row)
-// ─────────────────────────────────────────
 function MiniStepper({ status }) {
   if (status === 'cancelled') {
     return (
@@ -68,9 +66,8 @@ function MiniStepper({ status }) {
   );
 }
 
-// ─────────────────────────────────────────
+
 //  PAGINATION
-// ─────────────────────────────────────────
 function Pagination({ current, total, onChange }) {
   if (total <= 1) return null;
   return (
@@ -106,9 +103,7 @@ function Pagination({ current, total, onChange }) {
   );
 }
 
-// ─────────────────────────────────────────
 //  MAIN COMPONENT
-// ─────────────────────────────────────────
 export default function AdminRequests() {
   const { isDarkMode, toggleDarkMode } = useTheme();
 
@@ -132,15 +127,6 @@ export default function AdminRequests() {
     finally { setLoading(false); }
   }
 
-  async function handleStatusChange(id, newStatus) {
-    try {
-      await api.updateRequestStatus(id, newStatus);
-      setRequests((prev) => prev.map((r) => r.id === id ? { ...r, status: newStatus } : r));
-      if (selectedReq?.id === id) setSelectedReq((prev) => ({ ...prev, status: newStatus }));
-    } catch (err) {
-      alert('Failed to update status: ' + err.message);
-    }
-  }
 
   // Counts per status
   const counts = Object.fromEntries(
@@ -161,7 +147,7 @@ export default function AdminRequests() {
   return (
     <div className="min-h-screen bg-skill-light dark:bg-dark-bg transition-colors duration-300">
 
-      {/* ══ HEADER ══ */}
+      {/* HEADER */}
       <header className="sticky top-0 z-30 bg-white dark:bg-dark-card border-b border-skill-primary/10 dark:border-white/5 shadow-sm px-8 py-4">
         <div className="flex justify-between items-center max-w-[1600px] mx-auto">
           <div>
@@ -171,7 +157,7 @@ export default function AdminRequests() {
           <div className="flex items-center gap-3">
             <div className="relative hidden md:block">
               <Search className="absolute left-3 top-1/2 -translate-y-1/2 text-skill-primary/40" size={14} aria-hidden="true" />
-              <input type="search" placeholder="Search customer, service, worker…" value={searchTerm}
+              <input type="search" placeholder="Search resident, service, worker…" value={searchTerm}
                 onChange={(e) => setSearchTerm(e.target.value)} aria-label="Search requests"
                 className="pl-9 pr-4 py-2 bg-skill-light dark:bg-dark-bg rounded-lg border border-skill-primary/10 text-sm w-64 focus:ring-2 focus:ring-skill-primary outline-none dark:text-white" />
             </div>
@@ -197,7 +183,7 @@ export default function AdminRequests() {
           </div>
         )}
 
-        {/* ── Pipeline Summary Cards ── */}
+        {/* Pipeline Summary Cards */}
         <div className="grid grid-cols-2 md:grid-cols-5 gap-3 mb-6">
           {PIPELINE.map(({ key, label, icon: Icon, color, bg }) => (
             <button
@@ -219,7 +205,7 @@ export default function AdminRequests() {
           ))}
         </div>
 
-        {/* ── Filter Tabs ── */}
+        {/* Filter Tabs */}
         <div className="flex items-center gap-2 mb-4 overflow-x-auto pb-1">
           <SlidersHorizontal size={14} className="text-skill-primary flex-shrink-0" aria-hidden="true" />
           {FILTER_TABS.map((tab) => {
@@ -242,7 +228,7 @@ export default function AdminRequests() {
           </span>
         </div>
 
-        {/* ══ TABLE ══ */}
+        {/* TABLE */}
         <section aria-label="Requests list" className="bg-white dark:bg-dark-card rounded-xl border border-skill-primary/5 dark:border-white/5 shadow-sm overflow-hidden">
 
           {loading ? (
@@ -267,10 +253,10 @@ export default function AdminRequests() {
                   <thead>
                     <tr className="bg-skill-light/50 dark:bg-dark-bg/50 border-b border-gray-100 dark:border-white/5">
                       <th scope="col" className="px-5 py-3.5 text-left text-[10px] font-black text-gray-400 uppercase tracking-widest w-12">#</th>
-                      <th scope="col" className="px-4 py-3.5 text-left text-[10px] font-black text-gray-400 uppercase tracking-widest">Customer</th>
+                      <th scope="col" className="px-4 py-3.5 text-left text-[10px] font-black text-gray-400 uppercase tracking-widest">Resident</th>
                       <th scope="col" className="px-4 py-3.5 text-left text-[10px] font-black text-gray-400 uppercase tracking-widest">Service</th>
                       <th scope="col" className="px-4 py-3.5 text-left text-[10px] font-black text-gray-400 uppercase tracking-widest hidden md:table-cell">Problem</th>
-                      <th scope="col" className="px-4 py-3.5 text-left text-[10px] font-black text-gray-400 uppercase tracking-widest hidden lg:table-cell">Assigned Worker</th>
+                      <th scope="col" className="px-4 py-3.5 text-left text-[10px] font-black text-gray-400 uppercase tracking-widest hidden lg:table-cell">Accepted Worker</th>
                       <th scope="col" className="px-4 py-3.5 text-center text-[10px] font-black text-gray-400 uppercase tracking-widest hidden md:table-cell">Date</th>
                       <th scope="col" className="px-4 py-3.5 text-center text-[10px] font-black text-gray-400 uppercase tracking-widest">Status</th>
                       <th scope="col" className="px-4 py-3.5 text-center text-[10px] font-black text-gray-400 uppercase tracking-widest hidden lg:table-cell">Pipeline</th>
@@ -279,7 +265,7 @@ export default function AdminRequests() {
                   </thead>
                   <tbody className="divide-y divide-gray-100 dark:divide-white/5">
                     {paginated.map((req, i) => {
-                      const cfg  = STATUS_MAP[req.status] || STATUS_MAP['pending'];
+                      const cfg  = STATUS_MAP[req.status] || STATUS_MAP['pending_match'];
                       const Icon = cfg.icon;
                       return (
                         <tr key={req.id} className="hover:bg-skill-light/30 dark:hover:bg-dark-bg/30 transition-colors">
@@ -369,7 +355,7 @@ export default function AdminRequests() {
         </section>
       </main>
 
-      {/* ══ DETAIL MODAL ══ */}
+      {/* DETAIL MODAL */}
       {selectedReq && (
         <div role="dialog" aria-modal="true" aria-labelledby="rmodal-title"
           className="fixed inset-0 z-50 flex items-center justify-center p-4 bg-skill-dark/60 backdrop-blur-sm"
@@ -445,12 +431,17 @@ export default function AdminRequests() {
               {/* Details */}
               <dl className="grid grid-cols-2 gap-3">
                 {[
-                  { label: 'Customer', value: selectedReq.customer_name,  icon: User       },
-                  { label: 'Service',  value: selectedReq.service_type,   icon: Briefcase  },
-                  { label: 'Worker',   value: selectedReq.assigned_worker || 'Unassigned', icon: User },
+                  { label: 'Resident', value: selectedReq.customer_name,  icon: User      },
+                  { label: 'Service',  value: selectedReq.service_type,   icon: Briefcase },
                   { label: 'Date',     value: new Date(selectedReq.created_at).toLocaleDateString(), icon: Calendar },
-                  { label: 'Budget',   value: selectedReq.budget || '—',  icon: Briefcase  },
-                  { label: 'Urgency',  value: selectedReq.urgency || '—', icon: AlertCircle },
+                  { label: 'Budget',   value: selectedReq.budget
+                      ? String(selectedReq.budget).replace(/\/hr$/i, '').trim() || '—'
+                      : '—',                                               icon: Briefcase },
+                  ...(
+                    ['offer_accepted', 'completed'].includes(selectedReq.status)
+                      ? [{ label: 'Accepted Worker', value: selectedReq.assigned_worker || '—', icon: User }]
+                      : []
+                  ),
                 ].map(({ label, value, icon: Icon }) => (
                   <div key={label} className="bg-skill-light dark:bg-dark-bg rounded-lg p-3.5">
                     <dt className="text-[9px] font-bold text-gray-400 uppercase tracking-widest mb-1 flex items-center gap-1">
@@ -460,26 +451,6 @@ export default function AdminRequests() {
                   </div>
                 ))}
               </dl>
-
-              {/* Status control */}
-              <div>
-                <p className="text-[10px] font-bold text-gray-400 uppercase tracking-widest mb-2">Update Status</p>
-                <div className="grid grid-cols-2 gap-2">
-                  {PIPELINE.map(({ key, label, icon: Icon, color, badge }) => (
-                    <button key={key} type="button"
-                      onClick={() => handleStatusChange(selectedReq.id, key)}
-                      className={`flex items-center gap-2 px-3 py-2.5 rounded-lg text-xs font-bold transition-all border-2 ${
-                        selectedReq.status === key
-                          ? `${badge} border-current`
-                          : 'border-gray-100 dark:border-white/5 bg-skill-light dark:bg-dark-bg text-gray-500 dark:text-gray-400 hover:border-skill-primary/30'
-                      }`}>
-                      <Icon size={11} aria-hidden="true" className={selectedReq.status === key ? color : 'text-gray-400'} />
-                      {label}
-                      {selectedReq.status === key && <CheckCircle2 size={10} className="ml-auto text-skill-primary" aria-label="Current status" />}
-                    </button>
-                  ))}
-                </div>
-              </div>
             </div>
 
             {/* Footer */}

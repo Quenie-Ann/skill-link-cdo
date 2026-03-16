@@ -8,7 +8,7 @@ import {
   Activity, Briefcase,
 } from 'lucide-react';
 
-// ── Inline bar chart component ──
+// Inline bar chart component 
 function BarChart({ data }) {
   const [hovered, setHovered] = useState(null);
   const maxReq = Math.max(...data.map((d) => d.requests));
@@ -81,6 +81,7 @@ export default function AdminDashboard() {
         ]);
         setCounts(stats);
         setWeeklyData(weekly);
+
         setSkillBreakdown(skills);
         setMatchLogs(logs);
         setActivityFeed(feed);
@@ -98,7 +99,7 @@ export default function AdminDashboard() {
   return (
     <div className="min-h-screen bg-skill-light dark:bg-dark-bg transition-colors duration-300">
 
-      {/* ── Top Bar ── */}
+      {/* Top Bar */}
       <header className="sticky top-0 z-30 w-full bg-white dark:bg-dark-card border-b border-skill-primary/10 dark:border-white/5 shadow-sm px-8 py-4">
         <div className="flex justify-between items-center max-w-[1600px] mx-auto">
           <div>
@@ -123,14 +124,14 @@ export default function AdminDashboard() {
 
       <main className="p-8 max-w-[1600px] mx-auto space-y-8">
 
-        {/* ── Error Banner ── */}
+        {/* Error Banner */}
         {error && (
           <div className="p-4 bg-red-50 dark:bg-red-900/20 border border-red-200 dark:border-red-800 rounded-lg text-red-600 dark:text-red-400 text-sm flex items-center gap-2">
             <AlertCircle size={16} /> {error}
           </div>
         )}
 
-        {/* ── ROW 1: KPI Cards ── */}
+        {/* ROW 1: KPI Cards */}
         <div className="grid grid-cols-2 lg:grid-cols-4 gap-5">
 
           {/* Hero — Total Workers */}
@@ -205,7 +206,7 @@ export default function AdminDashboard() {
 
         </div>
 
-        {/* ── ROW 2: Chart + Skill Breakdown ── */}
+        {/* ROW 2: Chart + Skill Breakdown */}
         <div className="grid grid-cols-12 gap-5">
 
           {/* Weekly Volume Chart */}
@@ -264,7 +265,7 @@ export default function AdminDashboard() {
 
         </div>
 
-        {/* ── ROW 3: ML Match Log + Live Activity ── */}
+        {/* ROW 3: ML Match Log + Live Activity */}
         <div className="grid grid-cols-12 gap-5">
 
           {/* ML Match Reasoning Log — FR-ML-06 */}

@@ -1,20 +1,18 @@
 import React, { useState, useEffect } from 'react';
 import { useTheme } from '../../context/ThemeContext';
 import NotificationBell from '../../components/common/NotificationBell';
-import { useCountdown }    from '../../hooks/shared/useCountdown';
 import { useWorkerStatus } from '../../hooks/worker/useWorkerStatus';
 import { api } from '../../services/api';
 import {
   Zap, Sun, Moon, MapPin,
   CheckCircle2, XCircle, Star, BadgeCheck,
   ChevronRight, Phone, User, Briefcase,
-  Calendar, DollarSign, AlertTriangle,
-  Wifi, WifiOff, Navigation,
+  Calendar, DollarSign,
+  Wifi, WifiOff, Navigation, AlertTriangle
 } from 'lucide-react';
 
-// ─────────────────────────────────────────
+
 //  STAT PILL
-// ─────────────────────────────────────────
 function StatPill({ icon: Icon, label, value, highlight }) {
   return (
     <dl className={`flex items-center gap-2.5 px-4 py-2.5 rounded-lg border transition-all ${
@@ -35,9 +33,7 @@ function StatPill({ icon: Icon, label, value, highlight }) {
   );
 }
 
-// ─────────────────────────────────────────
 //  MAIN COMPONENT
-// ─────────────────────────────────────────
 export default function WorkerDashboard() {
   const { isDarkMode, toggleDarkMode } = useTheme();
 
@@ -59,29 +55,13 @@ export default function WorkerDashboard() {
     fetchData().catch(console.error);
   }, []);
 
-  const expiresIn = incomingJob?.expires_in ?? 120;
-
-  // Seed countdown so hook can detect expiry
-  const seedCountdown = useCountdown(expiresIn, false);
-
   const {
     uiState,
     goOnline, goOffline,
     acceptJob, declineJob,
     completeJob,
-  } = useWorkerStatus(seedCountdown.remaining);
+  } = useWorkerStatus(null);
 
-  // Live countdown — only active during incoming state
-  const { remaining, pct, display } = useCountdown(
-    expiresIn,
-    uiState === 'incoming',
-  );
-
-  // SVG countdown ring
-  const R         = 20;
-  const circ      = 2 * Math.PI * R;
-  const dash      = (pct / 100) * circ;
-  const ringColor = pct > 60 ? '#10b981' : pct > 30 ? '#f59e0b' : '#ef4444';
 
   const isOnline = uiState !== 'offline';
 
@@ -90,14 +70,15 @@ export default function WorkerDashboard() {
   return (
     <div className="min-h-screen bg-skill-light dark:bg-dark-bg transition-colors duration-300">
 
-      {/* ══ HEADER ══ */}
+      {/* HEADER */}
       <header
         role="banner"
         className="sticky top-0 z-30 w-full bg-white dark:bg-dark-card border-b border-skill-primary/10 dark:border-white/5 shadow-sm px-6 py-4"
       >
         <div className="flex justify-between items-center max-w-xl mx-auto">
           <div>
-            <h1 className="text-xl font-bold text-skill-dark dark:text-skill-primary">Job Matches</h1>
+            {/* Renamed from "Job Matches" — we'll use resident-initiated offers for the worker to accept */}
+            <h1 className="text-xl font-bold text-skill-dark dark:text-skill-primary">Job Offers</h1>
             <p className="text-[10px] uppercase tracking-widest text-skill-primary font-bold opacity-70">
               Worker Portal
             </p>
@@ -118,7 +99,7 @@ export default function WorkerDashboard() {
 
       <main id="main-content" className="max-w-xl mx-auto px-6 py-5 space-y-4">
 
-        {/* ══ WORKER IDENTITY CARD ══ */}
+        {/* WORKER IDENTITY CARD */}
         <section
           aria-label="Worker profile"
           className="bg-white dark:bg-dark-card rounded-lg p-5 border border-skill-primary/5 dark:border-white/5 shadow-sm"
@@ -182,7 +163,7 @@ export default function WorkerDashboard() {
         </section>
 
 
-        {/* ══ STATE: OFFLINE ══ */}
+        {/* STATE: OFFLINE */}
         {uiState === 'offline' && (
           <section
             aria-labelledby="offline-heading"
@@ -227,7 +208,7 @@ export default function WorkerDashboard() {
         )}
 
 
-        {/* ══ STATE: WAITING ══ */}
+        {/* STATE: WAITING */}
         {uiState === 'waiting' && (
           <section
             aria-labelledby="waiting-heading"
@@ -251,10 +232,11 @@ export default function WorkerDashboard() {
               </div>
 
               <h2 id="waiting-heading" className="text-lg font-black text-skill-dark dark:text-white mb-2">
-                Looking for Jobs
+                Waiting for Offers
               </h2>
               <p className="text-sm text-gray-400 leading-relaxed mb-5 max-w-xs mx-auto">
-                You're visible to residents. We'll notify you the moment a match is found.
+                {/* Residents submit requests, select you from ML results, then send an offer */}
+                You're visible to residents. When a resident selects you from their matched results, their offer will appear here.
               </p>
 
               <div className="flex justify-center gap-1.5 mb-8" aria-hidden="true">
@@ -270,7 +252,7 @@ export default function WorkerDashboard() {
               <button
                 type="button"
                 onClick={goOffline}
-                aria-label="Go offline and stop receiving job matches"
+                aria-label="Go offline and stop receiving job offers"
                 className="text-xs font-bold text-gray-400 hover:text-red-500 transition-colors inline-flex items-center gap-1.5"
               >
                 <WifiOff size={12} aria-hidden="true" /> Go Offline
@@ -280,7 +262,8 @@ export default function WorkerDashboard() {
         )}
 
 
-        {/* ══ STATE: INCOMING MATCH ══ */}
+        {/* STATE: INCOMING OFFER */}
+        {/* Redesigned as Job Offer inbox — offer is from ONE specific resident, not an ML broadcast */}
         {uiState === 'incoming' && (
           <section
             aria-labelledby="incoming-heading"
@@ -288,20 +271,20 @@ export default function WorkerDashboard() {
             aria-atomic="true"
             className="rounded-lg overflow-hidden shadow-2xl shadow-skill-dark/20 border border-skill-primary/20"
           >
-            {/* Match header */}
+            {/* Offer header */}
             <header className="bg-gradient-to-br from-skill-dark to-[#064e3b] p-7 text-white relative overflow-hidden">
               <div className="relative z-10">
 
-                <div className="flex items-start justify-between gap-4">
+                <div className="flex items-start gap-4">
                   <div className="flex-1">
-                    {/* Live badge */}
+                    {/* Offer badge */}
                     <p className="flex items-center gap-2 mb-3">
                       <span className="relative flex h-2.5 w-2.5 flex-shrink-0" aria-hidden="true">
-                        <span className="animate-ping absolute inline-flex h-full w-full rounded-full bg-amber-400 opacity-75" />
-                        <span className="relative inline-flex rounded-full h-2.5 w-2.5 bg-amber-400" />
+                        <span className="animate-ping absolute inline-flex h-full w-full rounded-full bg-skill-primary opacity-75" />
+                        <span className="relative inline-flex rounded-full h-2.5 w-2.5 bg-skill-primary" />
                       </span>
-                      <span className="text-[10px] font-black uppercase tracking-widest text-amber-400">
-                        New Job Match
+                      <span className="text-[10px] font-black uppercase tracking-widest text-skill-primary">
+                        New Job Offer
                       </span>
                     </p>
 
@@ -315,37 +298,14 @@ export default function WorkerDashboard() {
                       <span>Request {incomingJob?.id}</span>
                     </p>
                   </div>
-
-                  {/* Countdown ring */}
-                  <div
-                    className="flex flex-col items-center flex-shrink-0 relative"
-                    role="timer"
-                    aria-label={`Time remaining: ${display}`}
-                  >
-                    <svg width="52" height="52" className="-rotate-90" aria-hidden="true">
-                      <circle cx="26" cy="26" r={R} fill="none"
-                        stroke="rgba(255,255,255,0.1)" strokeWidth="3" />
-                      <circle cx="26" cy="26" r={R} fill="none"
-                        stroke={ringColor}
-                        strokeWidth="3"
-                        strokeDasharray={`${dash} ${circ}`}
-                        strokeLinecap="round"
-                        style={{ transition: 'stroke-dasharray 1s linear, stroke 0.5s' }}
-                      />
-                    </svg>
-                    <span className="absolute top-1/2 left-1/2 -translate-x-1/2 -translate-y-1/2 text-[11px] font-black text-white tabular-nums">
-                      {display}
-                    </span>
-                    <p className="text-[8px] text-white/30 font-bold uppercase tracking-wider mt-0.5">left</p>
-                  </div>
                 </div>
 
-                {/* Match badges */}
-                <div className="flex items-center gap-2 mt-5 flex-wrap" role="list" aria-label="Match details">
+                {/* Offer detail badges */}
+                <div className="flex items-center gap-2 mt-5 flex-wrap" role="list" aria-label="Offer details">
                   <span role="listitem" className="flex items-center gap-1.5 bg-skill-primary/20 border border-skill-primary/30 rounded-xl px-3 py-1.5">
                     <Zap size={10} className="text-skill-primary" aria-hidden="true" />
                     <span className="text-[10px] font-black text-skill-primary">
-                      {incomingJob?.match_score}% Match
+                      {incomingJob?.match_score}% ML Match
                     </span>
                   </span>
                   <span role="listitem" className="flex items-center gap-1.5 bg-white/10 rounded-xl px-3 py-1.5">
@@ -357,7 +317,7 @@ export default function WorkerDashboard() {
               <div className="absolute -right-6 -bottom-6 w-28 h-28 bg-skill-primary/10 rounded-full blur-2xl" aria-hidden="true" />
             </header>
 
-            {/* Job details */}
+            {/* Offer details */}
             <div className="bg-white dark:bg-dark-card px-7 pt-6 pb-5 space-y-4">
               <blockquote className="text-xs text-gray-500 dark:text-gray-400 leading-relaxed border-l-2 border-skill-primary/30 pl-3 italic">
                 {incomingJob?.description}
@@ -365,10 +325,10 @@ export default function WorkerDashboard() {
 
               <dl className="space-y-3">
                 {[
-                  { icon: User,        iconBg: 'bg-blue-50 dark:bg-blue-900/20',     iconColor: 'text-blue-500',    label: 'Resident',           value: incomingJob?.resident?.name    },
-                  { icon: MapPin,      iconBg: 'bg-red-50 dark:bg-red-900/20',       iconColor: 'text-red-500',     label: 'Service Address',    value: incomingJob?.resident?.address },
-                  { icon: Calendar,    iconBg: 'bg-purple-50 dark:bg-purple-900/20', iconColor: 'text-purple-500',  label: 'Preferred Schedule', value: incomingJob?.schedule          },
-                  { icon: DollarSign,  iconBg: 'bg-emerald-50 dark:bg-emerald-900/20', iconColor: 'text-emerald-600', label: 'Budget Range', value: incomingJob?.budget            },
+                  { icon: User,        iconBg: 'bg-blue-50 dark:bg-blue-900/20',        iconColor: 'text-blue-500',    label: 'Resident',           value: incomingJob?.resident?.name    },
+                  { icon: MapPin,      iconBg: 'bg-red-50 dark:bg-red-900/20',          iconColor: 'text-red-500',     label: 'Service Address',    value: incomingJob?.resident?.address },
+                  { icon: Calendar,    iconBg: 'bg-purple-50 dark:bg-purple-900/20',    iconColor: 'text-purple-500',  label: 'Preferred Schedule', value: incomingJob?.schedule          },
+                  { icon: DollarSign,  iconBg: 'bg-emerald-50 dark:bg-emerald-900/20',  iconColor: 'text-emerald-600', label: 'Budget Range',       value: incomingJob?.budget            },
                 ].map(({ icon: Icon, iconBg, iconColor, label, value }) => (
                   <div key={label} className="flex items-start gap-3.5">
                     <div className={`p-2.5 rounded-xl flex-shrink-0 ${iconBg}`} aria-hidden="true">
@@ -381,16 +341,6 @@ export default function WorkerDashboard() {
                   </div>
                 ))}
               </dl>
-
-              {/* Expiry warning */}
-              {pct <= 30 && (
-                <div role="alert" className="flex items-center gap-2.5 p-3.5 bg-red-50 dark:bg-red-900/20 rounded-lg border border-red-200 dark:border-red-800">
-                  <AlertTriangle size={13} className="text-red-500 flex-shrink-0" aria-hidden="true" />
-                  <p className="text-xs font-bold text-red-600 dark:text-red-400">
-                    Expiring soon — if you don't respond, this job goes to the next worker.
-                  </p>
-                </div>
-              )}
             </div>
 
             {/* Accept / Decline */}
@@ -398,7 +348,7 @@ export default function WorkerDashboard() {
               <button
                 type="button"
                 onClick={declineJob}
-                aria-label={`Decline job: ${incomingJob?.problem}`}
+                aria-label={`Decline offer: ${incomingJob?.problem}`}
                 className="flex-none flex items-center gap-2 px-5 py-3.5 rounded-lg border-2 border-gray-200 dark:border-white/10 text-sm font-bold text-gray-500 hover:border-red-300 hover:text-red-500 hover:bg-red-50 dark:hover:bg-red-900/10 transition-all"
               >
                 <XCircle size={15} aria-hidden="true" /> Decline
@@ -406,17 +356,17 @@ export default function WorkerDashboard() {
               <button
                 type="button"
                 onClick={acceptJob}
-                aria-label={`Accept job: ${incomingJob?.problem}`}
+                aria-label={`Accept offer: ${incomingJob?.problem}`}
                 className="flex-1 flex items-center justify-center gap-2.5 py-3.5 bg-skill-primary hover:bg-emerald-600 text-white rounded-lg font-black text-sm transition-all shadow-xl shadow-skill-primary/25 active:scale-[0.98]"
               >
-                <CheckCircle2 size={17} aria-hidden="true" /> Accept Job
+                <CheckCircle2 size={17} aria-hidden="true" /> Accept Offer
               </button>
             </div>
           </section>
         )}
 
 
-        {/* ══ STATE: ACTIVE JOB ══ */}
+        {/* STATE: ACTIVE JOB */}
         {uiState === 'active' && (
           <div className="space-y-4">
             <section

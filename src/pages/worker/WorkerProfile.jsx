@@ -8,9 +8,21 @@ import {
   Calendar, Shield,
 } from 'lucide-react';
 import { api } from '../../services/api';
-import { SKILL_OPTIONS } from '../../data/mockData';
 
-// ── Availability days selector ──
+const SKILL_OPTIONS = [
+  // Plumber sub-skills
+  'Pipe Installation', 'Leak Repair', 'Drain Cleaning', 'Water Heater Repair', 'Fixture Installation',
+  // Electrician sub-skills
+  'Wiring & Rewiring', 'Circuit Breaker Repair', 'Outlet Installation', 'Lighting Installation', 'Electrical Troubleshooting',
+  // Carpenter sub-skills
+  'Furniture Assembly', 'Cabinet Making', 'Door & Window Repair', 'Flooring Installation', 'Wood Framing',
+  // Mason sub-skills
+  'Brickwork', 'Concrete Pouring', 'Tile Setting', 'Stone Masonry', 'Wall Plastering',
+  // Welder sub-skills
+  'MIG Welding', 'TIG Welding', 'Arc Welding', 'Metal Fabrication', 'Gate & Fence Repair',
+];
+
+// Availability days selector 
 const DAYS = ['Mon', 'Tue', 'Wed', 'Thu', 'Fri', 'Sat', 'Sun'];
 
 export default function WorkerProfile() {
@@ -76,7 +88,7 @@ export default function WorkerProfile() {
   return (
     <div className="min-h-screen bg-skill-light dark:bg-dark-bg transition-colors duration-300">
 
-      {/* ── Top Bar ── */}
+      {/* Top Bar */}
       <header className="sticky top-0 z-30 w-full bg-white dark:bg-dark-card border-b border-skill-primary/10 dark:border-white/5 shadow-sm px-8 py-4">
         <div className="flex justify-between items-center max-w-[1600px] mx-auto">
           <div>
@@ -128,7 +140,7 @@ export default function WorkerProfile() {
       <main className="p-8 max-w-[1600px] mx-auto">
         <div className="grid grid-cols-12 gap-6">
 
-          {/* ── LEFT COLUMN ── */}
+          {/* LEFT COLUMN */}
           <div className="col-span-12 lg:col-span-4 space-y-5">
 
             {/* Identity Card */}
@@ -158,7 +170,7 @@ export default function WorkerProfile() {
                 {[
                   { label: 'Yrs Exp.',   value: profile.experience_years       },
                   { label: 'Rating',     value: '4.8 ★', special: true          },
-                  { label: 'Rate/hr',    value: `₱${profile.hourly_rate}`       },
+                  { label: 'Rate/day',   value: `₱${profile.daily_rate}`       },
                   { label: 'Jobs Done',  value: 12                              },
                 ].map(({ label, value, special }) => (
                   <div key={label} className="bg-skill-light dark:bg-dark-bg rounded-lg p-4 text-center">
@@ -198,7 +210,7 @@ export default function WorkerProfile() {
             </div>
           </div>
 
-          {/* ── RIGHT COLUMN ── */}
+          {/* RIGHT COLUMN */}
           <div className="col-span-12 lg:col-span-8 space-y-5">
 
             {/* Personal Information */}
@@ -253,10 +265,10 @@ export default function WorkerProfile() {
                     : <p className={readClass}>{profile.experience_years} years</p>}
                 </div>
                 <div>
-                  <label className="block text-[10px] font-bold text-gray-400 uppercase tracking-widest mb-2">Hourly Rate (₱)</label>
+                  <label className="block text-[10px] font-bold text-gray-400 uppercase tracking-widest mb-2">Daily Rate (₱)</label>
                   {isEditing
-                    ? <input type="number" min="0" className={inputClass} value={draft.hourly_rate} onChange={(e) => setDraft({ ...draft, hourly_rate: Number(e.target.value) })} />
-                    : <p className={readClass}>₱{profile.hourly_rate}/hr</p>}
+                    ? <input type="number" min="0" className={inputClass} value={draft.daily_rate} onChange={(e) => setDraft({ ...draft, daily_rate: Number(e.target.value) })} />
+                    : <p className={readClass}>₱{profile.daily_rate}/day</p>}
                 </div>
                 <div>
                   <label className="block text-[10px] font-bold text-gray-400 uppercase tracking-widest mb-2">Availability</label>
