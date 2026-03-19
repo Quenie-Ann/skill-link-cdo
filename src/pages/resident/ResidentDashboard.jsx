@@ -12,7 +12,7 @@ import {
 } from 'lucide-react';
 import {
   BLANK_FORM, SERVICE_CATEGORIES,
-  BUDGET_RANGES, URGENCY_OPTIONS, SCHEDULE_OPTIONS,
+  BUDGET_RANGES, PREFERRED_START_OPTIONS, SCHEDULE_OPTIONS,
 } from '../../data/mockData';
 import { api } from '../../services/api';
 
@@ -106,7 +106,7 @@ export default function ResidentDashboard() {
 
   function canProceed() {
     if (step === 1) return !!form.service_category;
-    if (step === 2) return !!form.specific_problem && !!form.budget_range && !!form.urgency && !!form.schedule && form.location.trim().length > 0;
+    if (step === 2) return !!form.specific_problem && !!form.budget_range && !!form.preferred_start && !!form.schedule && form.location.trim().length > 0;
     return true;
   }
 
@@ -120,7 +120,7 @@ export default function ResidentDashboard() {
         notes: [
           `Problem: ${form.specific_problem}`,
           `Budget: ${BUDGET_RANGES.find((b) => b.value === form.budget_range)?.label}`,
-          `Urgency: ${form.urgency}`,
+          `Preferred Start: ${PREFERRED_START_OPTIONS.find((p) => p.value === form.preferred_start)?.label}`,
           `Schedule: ${form.schedule}`,
           `Location: ${form.location}`,
           form.notes ? `Notes: ${form.notes}` : '',
@@ -133,7 +133,7 @@ export default function ResidentDashboard() {
             service_category: form.service_category,
             specific_problem: form.specific_problem,
             budget_range:     form.budget_range,
-            urgency:          form.urgency,
+            preferred_start:  form.preferred_start,
             schedule:         form.schedule,
             location:         form.location,
           },
@@ -295,6 +295,22 @@ export default function ResidentDashboard() {
 
                   {/* Pipeline stepper */}
                   <RequestStepper status={req.status} />
+
+                  {/* Confirmed booking details — shown once worker has accepted */}
+                  {req.status === 'offer_accepted' && req.confirmed_date && (
+                    <div className="mt-2.5 flex items-center gap-3 flex-wrap">
+                      <div className="flex items-center gap-1.5">
+                        <Calendar size={10} className="text-purple-500 flex-shrink-0" />
+                        <span className="text-[10px] font-bold text-purple-600 dark:text-purple-400">{req.confirmed_date}</span>
+                      </div>
+                      {req.confirmed_price && (
+                        <div className="flex items-center gap-1.5">
+                          <DollarSign size={10} className="text-emerald-500 flex-shrink-0" />
+                          <span className="text-[10px] font-bold text-emerald-600 dark:text-emerald-400">{req.confirmed_price}</span>
+                        </div>
+                      )}
+                    </div>
+                  )}
 
                   <div className="flex items-center justify-between mt-3">
                     <p className="text-[10px] text-gray-400">{req.date}</p>
@@ -472,21 +488,21 @@ export default function ResidentDashboard() {
                     </div>
                   </div>
 
-                  {/* Urgency */}
+                  {/* Preferred Start */}
                   <div>
                     <label className="block text-[10px] font-bold text-gray-400 uppercase tracking-widest mb-3">
-                      Urgency <span className="text-red-500">*</span>
+                      Preferred Start <span className="text-red-500">*</span>
                     </label>
                     <div className="grid grid-cols-2 gap-2">
-                      {URGENCY_OPTIONS.map((u) => (
-                        <button key={u.value} onClick={() => setForm({ ...form, urgency: u.value })}
+                      {PREFERRED_START_OPTIONS.map((p) => (
+                        <button key={p.value} onClick={() => setForm({ ...form, preferred_start: p.value })}
                           className={`p-3 rounded-lg border-2 text-left transition-all ${
-                            form.urgency === u.value
+                            form.preferred_start === p.value
                               ? 'border-skill-primary bg-skill-primary/5 dark:bg-skill-primary/10'
                               : 'border-gray-100 dark:border-white/5 bg-skill-light/50 dark:bg-dark-bg/50 hover:border-skill-primary/30'
                           }`}>
-                          <p className={`font-black text-sm ${form.urgency === u.value ? 'text-skill-primary' : 'text-skill-dark dark:text-white'}`}>{u.label}</p>
-                          <p className="text-[10px] text-gray-400 mt-0.5">{u.desc}</p>
+                          <p className={`font-black text-sm ${form.preferred_start === p.value ? 'text-skill-primary' : 'text-skill-dark dark:text-white'}`}>{p.label}</p>
+                          <p className="text-[10px] text-gray-400 mt-0.5">{p.desc}</p>
                         </button>
                       ))}
                     </div>
@@ -552,7 +568,7 @@ export default function ResidentDashboard() {
                       { icon: <selectedCategory.icon size={15} className={selectedCategory.color} />, bg: selectedCategory.bg, label: 'Service',  value: selectedCategory.label },
                       { icon: <FileText size={15} className="text-gray-400" />,                       bg: 'bg-gray-100 dark:bg-dark-bg',            label: 'Problem',  value: form.specific_problem },
                       { icon: <DollarSign size={15} className="text-emerald-500" />,                  bg: 'bg-emerald-50 dark:bg-emerald-900/20',   label: 'Budget',   value: BUDGET_RANGES.find((b) => b.value === form.budget_range)?.label },
-                      { icon: <AlertCircle size={15} className="text-amber-500" />,                   bg: 'bg-amber-50 dark:bg-amber-900/20',       label: 'Urgency',  value: URGENCY_OPTIONS.find((u) => u.value === form.urgency)?.label },
+                      { icon: <Clock size={15} className="text-purple-500" />,                         bg: 'bg-purple-50 dark:bg-purple-900/20',     label: 'Preferred Start', value: PREFERRED_START_OPTIONS.find((p) => p.value === form.preferred_start)?.label },
                       { icon: <Calendar size={15} className="text-blue-500" />,                       bg: 'bg-blue-50 dark:bg-blue-900/20',         label: 'Schedule', value: SCHEDULE_OPTIONS.find((s) => s.value === form.schedule)?.label },
                       { icon: <MapPin size={15} className="text-red-400" />,                          bg: 'bg-red-50 dark:bg-red-900/20',           label: 'Location', value: form.location },
                     ].map(({ icon, bg, label, value }, i, arr) => (

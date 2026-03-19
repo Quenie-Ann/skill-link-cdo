@@ -8,19 +8,7 @@ import {
   Calendar, Shield,
 } from 'lucide-react';
 import { api } from '../../services/api';
-
-const SKILL_OPTIONS = [
-  // Plumber sub-skills
-  'Pipe Installation', 'Leak Repair', 'Drain Cleaning', 'Water Heater Repair', 'Fixture Installation',
-  // Electrician sub-skills
-  'Wiring & Rewiring', 'Circuit Breaker Repair', 'Outlet Installation', 'Lighting Installation', 'Electrical Troubleshooting',
-  // Carpenter sub-skills
-  'Furniture Assembly', 'Cabinet Making', 'Door & Window Repair', 'Flooring Installation', 'Wood Framing',
-  // Mason sub-skills
-  'Brickwork', 'Concrete Pouring', 'Tile Setting', 'Stone Masonry', 'Wall Plastering',
-  // Welder sub-skills
-  'MIG Welding', 'TIG Welding', 'Arc Welding', 'Metal Fabrication', 'Gate & Fence Repair',
-];
+import { SKILL_OPTIONS } from '../../data/mockData';
 
 // Availability days selector 
 const DAYS = ['Mon', 'Tue', 'Wed', 'Thu', 'Fri', 'Sat', 'Sun'];
@@ -64,6 +52,18 @@ export default function WorkerProfile() {
         ? prev.skills.filter((s) => s !== skill)
         : [...prev.skills, skill],
     }));
+
+  // D-04: toggle a day in availability_schedule
+  const toggleDay = (day) =>
+    setDraft((prev) => {
+      const current = prev.availability_schedule || [];
+      return {
+        ...prev,
+        availability_schedule: current.includes(day)
+          ? current.filter((d) => d !== day)
+          : [...current, day],
+      };
+    });
 
   if (loading) {
     return (
@@ -327,22 +327,41 @@ export default function WorkerProfile() {
               </div>
             </div>
 
-            {/* Availability Schedule (visual) */}
+            {/* Availability Schedule */}
             <div className="bg-white dark:bg-dark-card rounded-xl p-8 shadow-sm border border-skill-primary/5 dark:border-white/5">
-              <h3 className="font-bold text-skill-dark dark:text-white text-base mb-5 flex items-center gap-2">
+              <h3 className="font-bold text-skill-dark dark:text-white text-base mb-1 flex items-center gap-2">
                 <Calendar size={18} className="text-skill-primary" /> Weekly Schedule
               </h3>
-              <div className="flex gap-2 flex-wrap">
+              {isEditing && (
+                <p className="text-[10px] text-gray-400 mb-4 font-medium">
+                  Tap a day to toggle your availability.
+                </p>
+              )}
+              <div className="flex gap-2 flex-wrap mt-4">
                 {DAYS.map((day) => {
-                  const weekdays = ['Mon', 'Tue', 'Wed', 'Thu', 'Fri'];
-                  const weekends = ['Sat', 'Sun'];
-                  const avail = profile.availability;
-                  const isActive =
-                    avail === 'anytime' ||
-                    (avail === 'weekdays' && weekdays.includes(day)) ||
-                    (avail === 'weekends' && weekends.includes(day));
-
-                  return (
+                  const schedule = isEditing
+                    ? (draft.availability_schedule || [])
+                    : (profile.availability_schedule || []);
+                  const isActive = schedule.includes(day);
+                  return isEditing ? (
+                    <button
+                      key={day}
+                      type="button"
+                      onClick={() => toggleDay(day)}
+                      className={`flex-1 min-w-[48px] py-3 rounded-lg text-center transition-all border-2 ${
+                        isActive
+                          ? 'bg-skill-primary border-skill-primary text-white shadow-md shadow-skill-primary/20'
+                          : 'bg-skill-light dark:bg-dark-bg border-transparent text-gray-400 hover:border-skill-primary/40'
+                      }`}
+                    >
+                      <p className="text-[10px] font-black uppercase tracking-wider">{day}</p>
+                      {isActive && (
+                        <div className="mt-1.5 flex justify-center">
+                          <span className="w-1 h-1 bg-white/60 rounded-full" />
+                        </div>
+                      )}
+                    </button>
+                  ) : (
                     <div
                       key={day}
                       className={`flex-1 min-w-[48px] py-3 rounded-lg text-center transition-all ${
@@ -362,11 +381,14 @@ export default function WorkerProfile() {
                 })}
               </div>
               <p className="text-[10px] text-gray-400 mt-3 font-medium">
-                {profile.availability === 'anytime'
-                  ? 'Available every day'
-                  : profile.availability === 'weekdays'
-                  ? 'Available Monday – Friday'
-                  : 'Available on weekends only'}
+                {(() => {
+                  const schedule = isEditing
+                    ? (draft.availability_schedule || [])
+                    : (profile.availability_schedule || []);
+                  if (schedule.length === 0) return 'No days selected';
+                  if (schedule.length === 7) return 'Available every day';
+                  return `Available on: ${schedule.join(', ')}`;
+                })()}
               </p>
             </div>
           </div>

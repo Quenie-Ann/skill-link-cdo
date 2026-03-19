@@ -73,6 +73,7 @@ export const MOCK_WORKERS = [
     jobs_done:        12,
     is_verified:      true,
     is_suspended:     false,
+    verification_status: 'verified',
     skills:           ['Plumbing', 'Pipe Fitting', 'Water Heater'],
     submitted_at:     '2026-02-10T08:00:00Z',
     documents: {
@@ -94,6 +95,7 @@ export const MOCK_WORKERS = [
     jobs_done:        8,
     is_verified:      true,
     is_suspended:     false,
+    verification_status: 'verified',
     skills:           ['Carpentry', 'Furniture', 'Roofing'],
     submitted_at:     '2026-02-12T09:30:00Z',
     documents: {
@@ -115,6 +117,7 @@ export const MOCK_WORKERS = [
     jobs_done:        0,
     is_verified:      false,
     is_suspended:     false,
+    verification_status: 'pending',
     skills:           ['Welding'],
     submitted_at:     '2026-03-01T11:00:00Z',
     documents: {
@@ -136,6 +139,7 @@ export const MOCK_WORKERS = [
     jobs_done:        21,
     is_verified:      true,
     is_suspended:     false,
+    verification_status: 'verified',
     skills:           ['Electrical', 'Wiring', 'Circuit Breaker', 'Panel Upgrade'],
     submitted_at:     '2026-01-20T07:00:00Z',
     documents: {
@@ -157,6 +161,7 @@ export const MOCK_WORKERS = [
     jobs_done:        34,
     is_verified:      true,
     is_suspended:     false,
+    verification_status: 'verified',
     skills:           ['Carpentry', 'Cabinet Making', 'Flooring', 'Roofing'],
     submitted_at:     '2025-12-15T08:00:00Z',
     documents: {
@@ -178,6 +183,7 @@ export const MOCK_WORKERS = [
     jobs_done:        5,
     is_verified:      false,
     is_suspended:     true,
+    verification_status: 'flagged',
     skills:           ['Welding', 'Furniture repair'],
     submitted_at:     '2026-02-28T10:00:00Z',
     documents: {
@@ -196,12 +202,14 @@ export const MOCK_RESIDENTS = [
     phone:            '09123456789',
     location:         'Zone 1, Bulua, CDO',
     submitted_at:     '2026-01-15T09:00:00Z',
+    is_verified:      true,
+    verification_status: 'verified',
+    doc_type:         'government_id',
     documents: {
       government_id:      'submitted',
       proof_of_residence: 'submitted',
     },
     bio: 'Resident of Zone 1, Bulua, CDO, seeking verification for community services.',
-    is_verified: true,
   },
   {
     id:               2,
@@ -209,12 +217,14 @@ export const MOCK_RESIDENTS = [
     phone:            '09876543210',
     location:         'Zone 2, Bulua, CDO',
     submitted_at:     '2026-02-01T10:00:00Z',
+    is_verified:      false,
+    verification_status: 'pending',
+    doc_type:         'government_id',
     documents: {
       government_id:      'submitted',
       proof_of_residence: 'submitted',
     },
     bio: 'Active resident looking to participate in community initiatives.',
-    is_verified: false,
   },
   {
     id:               3,
@@ -222,14 +232,15 @@ export const MOCK_RESIDENTS = [
     phone:            '09111222333',
     location:         'Zone 3, Bulua, CDO',
     submitted_at:     '2026-02-15T11:00:00Z',
+    is_verified:      false,
+    verification_status: 'flagged',
+    doc_type:         'proof_of_residence',
     documents: {
       government_id:      'submitted',
       proof_of_residence: 'submitted',
     },
     bio: 'New resident interested in community engagement.',
-    is_verified: false,
-  }
-
+  },
 ];
 
 
@@ -246,7 +257,7 @@ export const MOCK_REQUESTS = [
     budget:          '₱400 – ₱500/day',
     urgency:         'urgent',
     schedule:        'Weekdays',
-    status:          'pending',
+    status:          'pending_match',
     assigned_worker: null,
     created_at:      new Date(Date.now() - 2 * 60000).toISOString(),    // 2 min ago
   },
@@ -259,7 +270,7 @@ export const MOCK_REQUESTS = [
     budget:          '₱450 – ₱600/day',
     urgency:         'normal',
     schedule:        'Flexible',
-    status:          'matched',
+    status:          'offer_sent',
     assigned_worker: 'Rosa Lim',
     created_at:      new Date(Date.now() - 30 * 60000).toISOString(),   // 30 min ago
   },
@@ -272,7 +283,7 @@ export const MOCK_REQUESTS = [
     budget:          '₱400 – ₱500/day',
     urgency:         'flexible',
     schedule:        'Weekends',
-    status:          'in_progress',
+    status:          'offer_accepted',
     assigned_worker: 'Ben Torres',
     created_at:      new Date(Date.now() - 3 * 3600000).toISOString(),  // 3 hrs ago
   },
@@ -337,7 +348,7 @@ export const SKILL_BREAKDOWN = [
   { label: 'Electrical', count: 9,  pct: 64, color: 'bg-amber-400'   },
   { label: 'Carpentry',  count: 7,  pct: 50, color: 'bg-orange-400'  },
   { label: 'Mason',      count: 5,  pct: 36, color: 'bg-violet-400'  },
-  { label: 'Welder',     count: 4,  pct: 29, color: 'bg-emerald-400' },
+  { label: 'Welding',    count: 4,  pct: 29, color: 'bg-emerald-400' },
 ];
 
 
@@ -452,19 +463,20 @@ export const ACTIVITY_FEED = [
 
 /** Logged-in worker profile */
 export const MOCK_PROFILE = {
-  full_name:        'Juan Dela Cruz',
-  phone:            '09171234567',
-  address:          'Zone 1, Bulua, CDO',
-  bio:              'Experienced plumber with 5+ years of residential and commercial experience.',
-  experience_years: 5,
-  daily_rate:      650,
-  rating:           4.8,
-  jobs_done:        12,
-  tier:             'Gold',
-  is_verified:      true,
-  skills:           ['Plumbing', 'Pipe Fitting', 'Water Heater'],
-  availability:     'weekdays',
-  service:          'Plumbing',
+  full_name:             'Juan Dela Cruz',
+  phone:                 '09171234567',
+  address:               'Zone 1, Bulua, CDO',
+  bio:                   'Experienced plumber with 5+ years of residential and commercial experience.',
+  experience_years:      5,
+  daily_rate:            650,
+  rating:                4.8,
+  jobs_done:             12,
+  is_verified:           true,
+  skills:                ['Plumbing', 'Pipe Fitting', 'Water Heater'],
+  availability:          'weekdays',
+  // D-04: availability_schedule — granular day-level availability (ERD WORKER_PROFILE, API v1.1)
+  availability_schedule: ['Mon', 'Tue', 'Wed', 'Thu', 'Fri'],
+  service:               'Plumbing',
   documents: {
     government_id:      'submitted',
     barangay_clearance: 'submitted',
@@ -569,11 +581,12 @@ export const MOCK_INCOMING_JOB = {
     phone:   '09171234567',
     address: 'Zone 1, Bulua, CDO',
   },
-  budget:      '₱500 – ₱1,000',
-  schedule:    'Today, ASAP',
-  distance:    '1.2 km away',
-  match_score: 94,
-  expires_in:  120, // seconds before job passes to next worker
+  budget:          '₱500 – ₱1,000',
+  schedule:        'Weekdays Only',
+  preferred_start: 'Within 3 Days',
+  distance:        '1.2 km away',
+  match_score:     94,
+  expires_in:      120, // seconds before job passes to next worker
 };
 
 /** Active job for WorkerDashboard state: 'active' */
@@ -586,9 +599,11 @@ export const MOCK_ACTIVE_JOB = {
     phone:   '09189876543',
     address: 'Zone 4, Bulua, CDO',
   },
-  budget:      '₱400 – ₱500',
-  accepted_at: '2:15 PM',
-  distance:    '0.8 km away',
+  budget:          '₱400 – ₱500',
+  confirmed_price: '₱650/day',
+  confirmed_date:  'March 21, 2026',
+  accepted_at:     '2:15 PM',
+  distance:        '0.8 km away',
 };
 
 
@@ -598,13 +613,14 @@ export const MOCK_ACTIVE_JOB = {
 /** Recent requests for the logged-in resident */
 export const RESIDENT_REQUESTS = [
   {
-    id:      1,
-    title:   'Electrical Repair',
-    service: 'Electrical',
-    status:  'in_progress',
-    worker:  'Rosa Lim',
-    date:    'Today, 2:30 PM',
-    rating:  null,
+    id:              1,
+    title:           'Electrical Repair',
+    service:         'Electrical',
+    status:          'offer_accepted',
+    worker:          'Rosa Lim',
+    confirmed_date:  'March 21, 2026',
+    confirmed_price: '₱650/day',
+    rating:          null,
   },
   {
     id:      2,
@@ -713,8 +729,8 @@ export const SERVICE_CATEGORIES = [
     problems: ['Cracked walls', 'Tile repair', 'Concrete work', 'Brickwork'],
   },
   {
-    value: 'Welder',
-    label: 'Welder',
+    value: 'Welding',
+    label: 'Welding',
     icon: Flame,
     color: 'text-orange-600 dark:text-orange-400',
     bg: 'bg-orange-50 dark:bg-orange-900/20',
@@ -730,11 +746,12 @@ export const BUDGET_RANGES = [
   { value: 'negotiable', label: 'Open / Negotiable' },
 ];
 
-export const URGENCY_OPTIONS = [
-  { value: 'emergency', label: 'Emergency', desc: 'Needs immediate attention' },
-  { value: 'urgent',    label: 'Urgent',    desc: 'Within 24–48 hours'        },
-  { value: 'normal',    label: 'Normal',    desc: 'Within the week'           },
-  { value: 'flexible',  label: 'Flexible',  desc: 'No rush, anytime works'    },
+// D-01: URGENCY_OPTIONS retired — replaced by PREFERRED_START_OPTIONS
+export const PREFERRED_START_OPTIONS = [
+  { value: 'today',         label: 'Today',         desc: 'Start as soon as possible today' },
+  { value: 'within_3_days', label: 'Within 3 Days', desc: 'Flexible within the next 3 days' },
+  { value: 'this_week',     label: 'This Week',     desc: 'Anytime before the week ends'    },
+  { value: 'flexible',      label: 'No Rush',       desc: 'Flexible — no specific deadline' },
 ];
 
 export const SCHEDULE_OPTIONS = [
@@ -748,17 +765,24 @@ export const BLANK_FORM = {
   service_category: '',
   specific_problem: '',
   budget_range:     '',
-  urgency:          '',
+  preferred_start:  '',
   schedule:         '',
   location:         '',
   notes:            '',
 };
 
+// W-05 — pilot trade sub-skills only (Painting, Cleaning, Roofing, Tiling excluded)
 export const SKILL_OPTIONS = [
-  'Plumbing', 'Pipe Fitting', 'Water Heater', 'Drain Cleaning',
-  'Electrical', 'Wiring', 'Circuit Breaker', 'Panel Upgrade',
-  'Carpentry', 'Cabinet Making', 'Roofing', 'Flooring',
-  'Welding', 'Masonry', 'Tiling',
+  // Plumber
+  'Pipe Installation', 'Leak Repair', 'Drain Cleaning', 'Water Heater Repair', 'Fixture Installation',
+  // Electrician
+  'Wiring & Rewiring', 'Circuit Breaker Repair', 'Outlet Installation', 'Lighting Installation', 'Electrical Troubleshooting',
+  // Carpenter
+  'Furniture Assembly', 'Cabinet Making', 'Door & Window Repair', 'Flooring Installation', 'Wood Framing',
+  // Mason
+  'Brickwork', 'Concrete Pouring', 'Tile Setting', 'Stone Masonry', 'Wall Plastering',
+  // Welder
+  'MIG Welding', 'TIG Welding', 'Arc Welding', 'Metal Fabrication', 'Gate & Fence Repair',
 ];
 
 
@@ -776,12 +800,27 @@ export const STATUS_CONFIG = {
     bg:     'bg-emerald-50 dark:bg-emerald-900/20',
     badge:  'bg-emerald-100 text-emerald-700 dark:bg-emerald-900/30 dark:text-emerald-400',
   },
-  in_progress: {
-    label:  'In Progress',
+  // SRS v1.0 Section 3.2 — documented status values
+  pending_match: {
+    label:  'Pending Match',
     icon:   Clock,
+    color:  'text-amber-600 dark:text-amber-400',
+    bg:     'bg-amber-50 dark:bg-amber-900/20',
+    badge:  'bg-amber-100 text-amber-700 dark:bg-amber-900/30 dark:text-amber-400',
+  },
+  offer_sent: {
+    label:  'Offer Sent',
+    icon:   Zap,
     color:  'text-blue-600 dark:text-blue-400',
     bg:     'bg-blue-50 dark:bg-blue-900/20',
     badge:  'bg-blue-100 text-blue-700 dark:bg-blue-900/30 dark:text-blue-400',
+  },
+  offer_accepted: {
+    label:  'Offer Accepted',
+    icon:   CheckCircle2,
+    color:  'text-purple-600 dark:text-purple-400',
+    bg:     'bg-purple-50 dark:bg-purple-900/20',
+    badge:  'bg-purple-100 text-purple-700 dark:bg-purple-900/30 dark:text-purple-400',
   },
   cancelled: {
     label:  'Cancelled',
@@ -790,20 +829,6 @@ export const STATUS_CONFIG = {
     bg:     'bg-red-50 dark:bg-red-900/20',
     badge:  'bg-red-100 text-red-700 dark:bg-red-900/30 dark:text-red-400',
   },
-  pending: {
-    label:  'Pending',
-    icon:   Clock,
-    color:  'text-amber-600 dark:text-amber-400',
-    bg:     'bg-amber-50 dark:bg-amber-900/20',
-    badge:  'bg-amber-100 text-amber-700 dark:bg-amber-900/30 dark:text-amber-400',
-  },
-  matched: {
-    label:  'Matched',
-    icon:   CheckCircle2,
-    color:  'text-purple-600 dark:text-purple-400',
-    bg:     'bg-purple-50 dark:bg-purple-900/20',
-    badge:  'bg-purple-100 text-purple-700 dark:bg-purple-900/30 dark:text-purple-400',
-  },
 };
 
 /** Service type → icon + color */
@@ -811,8 +836,8 @@ export const SERVICE_CONFIG = {
   Plumbing:   { icon: Wrench,     color: 'text-blue-500',    bg: 'bg-blue-50 dark:bg-blue-900/20'      },
   Electrical: { icon: Zap,        color: 'text-amber-500',   bg: 'bg-amber-50 dark:bg-amber-900/20'    },
   Carpentry:  { icon: Hammer,     color: 'text-orange-500',  bg: 'bg-orange-50 dark:bg-orange-900/20'  },
-  Mason:      { icon: Construction, color: 'text-emerald-500', bg: 'bg-emerald-50 dark:bg-emerald-900/20'},
-  Welding:   { icon: Wrench,   color: 'text-rose-500',     bg: 'bg-rose-50 dark:bg-rose-900/20'        },
+  Mason:      { icon: Construction, color: 'text-stone-600 dark:text-stone-400', bg: 'bg-stone-50 dark:bg-stone-900/20'    },
+  Welding:    { icon: Flame,        color: 'text-orange-600 dark:text-orange-400', bg: 'bg-orange-50 dark:bg-orange-900/20' },
 };
 
 /** Filter pill labels for ResidentDirectory */
