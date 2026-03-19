@@ -137,6 +137,14 @@ export const api = {
       ? mock(data)
       : request('PUT', '/profile', data),
 
+  // D-04: Update worker's day-level availability schedule.
+  // ERD: WORKER_PROFILE.availability_schedule (JSON array of day strings)
+  // API v1.1: PATCH /worker/availability-schedule
+  updateAvailabilitySchedule: (days) =>
+    USE_MOCK
+      ? mock({ availability_schedule: days })
+      : request('PATCH', '/worker/availability-schedule', { availability_schedule: days }),
+
   // Aggregated stats for WorkerDashboard summary pills.
   getWorkerStats: () =>
     USE_MOCK
