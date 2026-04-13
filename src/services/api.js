@@ -9,21 +9,52 @@ import {
 } from '../data/mockData';
 
 // Set to true for demo / set to false for live backend 
-const USE_MOCK = true;
+const USE_MOCK = false;
 
-const BASE_URL = import.meta.env.VITE_API_URL || 'http://localhost:3001/api';
+// Using Django server with CORS enabled, so frontend can be on different port during development.
+const BASE_URL = 'http://127.0.0.1:8000/api';
 
 //  Internal HTTP helper — used only when USE_MOCK = false
+//async function request(method, path, body = null) {
+
+// Request helper to handle JWT tokens
 async function request(method, path, body = null) {
+  const session = JSON.parse(localStorage.getItem('barangayskill_session'));
+  const token = session?.access;
+
   const options = {
     method,
-    headers: { 'Content-Type': 'application/json' },
+    headers: { 
+      'Content-Type': 'application/json',
+      // Only attach Authorization header if the token exists
+      ...(token && { 'Authorization': `Bearer ${token}` })
+    }
   };
+  
   if (body) options.body = JSON.stringify(body);
 
-  const res  = await fetch(`${BASE_URL}${path}`, options);
-  const data = await res.json();
-  if (!res.ok) throw new Error(data.error || 'API request failed');
+  const res = await fetch(`${BASE_URL}${path}`, options);
+
+  // 1. Get the raw text first to avoid "Unexpected end of JSON"
+  const text = await res.text();
+  
+  // 2. Safely parse JSON if text exists, otherwise return an empty object
+  const data = text ? JSON.parse(text) : {};
+
+  // 3. Robust Error Handling
+  if (!res.ok) {
+    // Check if Django sent a specific error message, otherwise fallback to status text
+    const errorMsg = data.error || data.detail || `Error ${res.status}: ${res.statusText}`;
+    
+    // Optional: Auto-logout if token is expired (401 Unauthorized)
+    if (res.status === 401) {
+      localStorage.removeItem('barangayskill_session');
+      window.location.hash = '/login'; 
+    }
+
+    throw new Error(errorMsg);
+  }
+
   return data;
 }
 
@@ -36,92 +67,95 @@ function mock(data, delayMs = 0) {
 
 //  API SURFACE
 export const api = {
-  
+
 
   // ADMIN — Stats & Dashboard
   // KPI counts for AdminDashboard cards.
   getStats: () =>
     USE_MOCK
       ? mock(MOCK_STATS)
-      : request('GET', '/stats'),
+      : request('GET', '/stats/'),
 
   // 7-day requests vs completed data for BarChart.
   getWeeklyStats: () =>
     USE_MOCK
       ? mock(WEEKLY_DATA)
-      : request('GET', '/stats/weekly'),
+      : request('GET', '/stats/weekly/'),
 
   //Service category breakdown for the admin skill panel.
   getSkillBreakdown: () =>
     USE_MOCK
       ? mock(SKILL_BREAKDOWN)
-      : request('GET', '/stats/skills'),
+      : request('GET', '/stats/skills/'),
 
   // ML engine match log entries for AdminDashboard panel.
   getMatchLogs: () =>
     USE_MOCK
       ? mock(ML_MATCH_LOGS)
-      : request('GET', '/matches/logs'),
+      : request('GET', '/matches/logs/'),
 
   //Live activity feed events for AdminDashboard.
   getActivityFeed: () =>
     USE_MOCK
       ? mock(ACTIVITY_FEED)
-      : request('GET', '/activity'),
+      : request('GET', '/activity/'),
 
   // ADMIN — Workers
   // All workers for Admin Workers page and Resident Directory.
-  getWorkers: () =>
-    USE_MOCK
-      ? mock(MOCK_WORKERS)
-      : request('GET', '/workers'),
+  getWorkers: (category = null) =>
+  USE_MOCK
+    ? mock(MOCK_WORKERS)
+    : request('GET', category
+        ? `/workers/?category=${encodeURIComponent(category)}`
+        : '/workers/'
+      ),
 
   // Verify or un-verify a worker.
   verifyWorker: (id, isVerified) =>
     USE_MOCK
       ? mock({ id, is_verified: isVerified })
-      : request('PATCH', `/workers/${id}/verify`, { is_verified: isVerified }),
+      : request('PATCH', `/workers/${id}/verify/`, { is_verified: isVerified }),
 
   // Suspend or un-suspend a worker.
   suspendWorker: (id, isSuspended) =>
     USE_MOCK
       ? mock({ id, is_suspended: isSuspended })
-      : request('PATCH', `/workers/${id}/suspend`, { is_suspended: isSuspended }),
+      : request('PATCH', `/workers/${id}/suspend/`, { is_suspended: isSuspended }),
 
   // Add a new worker (admin manual registration).
   addWorker: (body) =>
     USE_MOCK
       ? mock({ id: Date.now(), ...body })
-      : request('POST', '/workers', body),
+      : request('POST', '/workers/', body),
 
   getResidents: () =>
-  USE_MOCK
-    ? mock(MOCK_RESIDENTS)
-    : request('GET', '/residents'),
+    USE_MOCK
+      ? mock(MOCK_RESIDENTS)
+      : request('GET', '/residents/'),
 
   verifyResident: (id, isVerified) =>
-  USE_MOCK
-    ? mock({ id, is_verified: isVerified })
-    : request('PATCH', `/residents/${id}/verify`, { is_verified: isVerified }),
+    USE_MOCK
+      ? mock({ id, is_verified: isVerified })
+      : request('PATCH', `/residents/${id}/verify/`, { is_verified: isVerified }),
 
   // ADMIN — Requests
   // All service requests for Admin Requests page and AdminDashboard.
   getRequests: () =>
     USE_MOCK
       ? mock(MOCK_REQUESTS)
-      : request('GET', '/requests'),
+      : request('GET', '/requests/'),
 
   //Update a request's status (pending → matched → in_progress → completed).
   updateRequestStatus: (id, status) =>
     USE_MOCK
       ? mock({ id, status })
-      : request('PATCH', `/requests/${id}/status`, { status }),
+      : request('PATCH', `/requests/${id}/status/`, { status }),
 
   // Create a new service request (from Resident portal).
   createRequest: (body) =>
     USE_MOCK
       ? mock({ id: Date.now(), status: 'pending', ...body })
-      : request('POST', '/requests', body),
+      : request('POST', '/requests/', body),
 
 
   // WORKER PORTAL
@@ -129,13 +163,13 @@ export const api = {
   getProfile: () =>
     USE_MOCK
       ? mock(MOCK_PROFILE)
-      : request('GET', '/profile'),
+      : request('GET', '/profile/'),
 
   // Update worker profile fields.
   updateProfile: (data) =>
     USE_MOCK
       ? mock(data)
-      : request('PUT', '/profile', data),
+      : request('PUT', '/profile/', data),
 
   // D-04: Update worker's day-level availability schedule.
   // ERD: WORKER_PROFILE.availability_schedule (JSON array of day strings)
@@ -143,55 +177,55 @@ export const api = {
   updateAvailabilitySchedule: (days) =>
     USE_MOCK
       ? mock({ availability_schedule: days })
-      : request('PATCH', '/worker/availability-schedule', { availability_schedule: days }),
+      : request('PATCH', '/worker/availability-schedule/', { availability_schedule: days }),
 
   // Aggregated stats for WorkerDashboard summary pills.
   getWorkerStats: () =>
     USE_MOCK
       ? mock(WORKER_STATS)
-      : request('GET', '/worker/stats'),
+      : request('GET', '/worker/stats/'),
 
   // Job history list for WorkerHistory page.
   getJobHistory: () =>
     USE_MOCK
       ? mock(JOB_HISTORY)
-      : request('GET', '/jobs/history'),
+      : request('GET', '/jobs/history/'),
 
   // Current incoming match for WorkerDashboard 'incoming' state.
   getIncomingJob: () =>
     USE_MOCK
       ? mock(MOCK_INCOMING_JOB)
-      : request('GET', '/worker/match/pending'),
+      : request('GET', '/worker/match/pending/'),
 
   // Currently active (accepted) job for WorkerDashboard 'active' state.
   getActiveJob: () =>
     USE_MOCK
       ? mock(MOCK_ACTIVE_JOB)
-      : request('GET', '/worker/job/active'),
+      : request('GET', '/worker/job/active/'),
 
   // Worker accepts an incoming match.
   acceptMatch: (matchId) =>
     USE_MOCK
       ? mock({ matchId, accepted: true })
-      : request('POST', `/worker/match/${matchId}/accept`),
+      : request('POST', `/worker/match/${matchId}/accept/`),
 
   // Worker declines an incoming match.
   declineMatch: (matchId) =>
     USE_MOCK
       ? mock({ matchId, declined: true })
-      : request('POST', `/worker/match/${matchId}/decline`),
+      : request('POST', `/worker/match/${matchId}/decline/`),
 
   // Worker marks current job as complete.
   markJobComplete: (jobId) =>
     USE_MOCK
       ? mock({ jobId, completed: true })
-      : request('POST', `/worker/job/${jobId}/complete`),
+      : request('POST', `/worker/job/${jobId}/complete/`),
 
   // Worker toggles online/offline availability.
   setWorkerOnlineStatus: (isOnline) =>
     USE_MOCK
       ? mock({ is_online: isOnline })
-      : request('PATCH', '/worker/status', { is_online: isOnline }),
+      : request('PATCH', '/worker/status/', { is_online: isOnline }),
 
 
   // RESIDENT PORTAL
@@ -199,31 +233,47 @@ export const api = {
   getResidentRequests: () =>
     USE_MOCK
       ? mock(RESIDENT_REQUESTS)
-      : request('GET', '/resident/requests'),
+      : request('GET', '/resident/requests/'),
+
+  // Add this to the api object in api.js
+  getResidentProfile: () =>
+    USE_MOCK
+      ? mock(MOCK_PROFILE)
+      : request('GET', '/resident/profile/'),
 
   // Submit a rating for a completed job.
   submitRating: (data) =>
     USE_MOCK
       ? mock({ success: true, ...data })
-      : request('POST', '/ratings', data),
+      : request('POST', '/ratings/', data),
 
+  getSkillCategories: () =>
+  USE_MOCK
+    ? mock([])
+    : request('GET', '/skill-categories/'),
+
+  // Send a job offer to a specific worker for a specific request
+  sendOffer: (requestId, workerId) =>
+    USE_MOCK
+      ? mock({ success: true })
+      : request('POST', `/requests/${requestId}/send-offer/${workerId}/`),
 
   // NOTIFICATIONS (all portals)
   // Unread + recent notifications for NotificationBell.
   getNotifications: () =>
     USE_MOCK
       ? mock(INITIAL_NOTIFICATIONS)
-      : request('GET', '/notifications'),
+      : request('GET', '/notifications/'),
 
   // Mark a single notification as read.
   markNotificationRead: (id) =>
     USE_MOCK
       ? mock({ id, read: true })
-      : request('PATCH', `/notifications/${id}/read`),
+      : request('PATCH', `/notifications/${id}/read/`),
 
   // Dismiss (delete) a notification.
   dismissNotification: (id) =>
     USE_MOCK
       ? mock({ id, dismissed: true })
-      : request('DELETE', `/notifications/${id}`),
+      : request('DELETE', `/notifications/${id}/`),
 };

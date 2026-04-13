@@ -1,3 +1,4 @@
+// src/pages/auth/Login.jsx
 import React, { useState, useEffect } from 'react';
 import { localAuth } from '../../services/auth'; 
 import { useNavigate } from 'react-router-dom';
@@ -34,7 +35,7 @@ const Login = ({ onLoginSuccess }) => { // Added prop to update App.jsx state
     return e;
   }
 
-  // UPDATED Submission (Using localAuth.signIn) 
+  // UPDATED Submission using Django backend and JWT auth
   async function handleSubmit(e) {
     e.preventDefault();
     const validationErrors = validate();
@@ -46,16 +47,16 @@ const Login = ({ onLoginSuccess }) => { // Added prop to update App.jsx state
     setIsLoading(true);
     
     try {
-      const { user } = localAuth.signIn(formData.email.trim(), formData.password);
+      const { user } = await localAuth.signIn(formData.email.trim(), formData.password);
 
-      setTimeout(() => { 
-        setIsLoading(false);
-        if (onLoginSuccess) onLoginSuccess(user);
-        navigate(`/${user.role}/dashboard`);
-      }, 800);
+      setIsLoading(false);
+      
+      if (onLoginSuccess) onLoginSuccess(user);
+
+      const userRole = user.role || 'resident'; 
+      navigate(`/${userRole}/dashboard`);
 
     } catch (err) {
-      // Catch the "throw new Error" from service
       setIsLoading(false);
       setLoginError(err.message);
     }

@@ -1,14 +1,12 @@
 import React, { useState, useRef, useEffect } from 'react';
-import { Bell, X, Check } from 'lucide-react';
+import { Bell, X, Check, Zap, Briefcase, 
+  CheckCircle2, Star, Activity, AlertCircle } from 'lucide-react';
 import { api } from '../../services/api';
 
 /**
  * NotificationBell
  * Drop-in component for any page header.
  * Usage: <NotificationBell />
- *
- * Data source: api.getNotifications() → mockData.INITIAL_NOTIFICATIONS
- * Phase 2: hits GET /notifications on the real backend
  */
 export default function NotificationBell() {
   const [open,          setOpen]          = useState(false);
@@ -19,7 +17,38 @@ export default function NotificationBell() {
 
   // Load notifications on mount
   useEffect(() => {
-    api.getNotifications().then(setNotifications).catch(console.error);
+    const TYPE_MAP = {
+      match:     { icon: Zap,          iconBg: 'bg-skill-primary/10',                iconColor: 'text-skill-primary'  },
+      offer:     { icon: Briefcase,    iconBg: 'bg-blue-50 dark:bg-blue-900/20',     iconColor: 'text-blue-500'       },
+      accepted:  { icon: CheckCircle2, iconBg: 'bg-emerald-50 dark:bg-emerald-900/20', iconColor: 'text-emerald-500'  },
+      completed: { icon: CheckCircle2, iconBg: 'bg-teal-50 dark:bg-teal-900/20',     iconColor: 'text-teal-500'       },
+      rating:    { icon: Star,         iconBg: 'bg-amber-50 dark:bg-amber-900/20',   iconColor: 'text-amber-500'      },
+      system:    { icon: Activity,     iconBg: 'bg-gray-100 dark:bg-gray-800',       iconColor: 'text-gray-400'       },
+    };
+
+    api.getNotifications()
+      .then((data) => {
+        const normalized = (data || []).map((n) => {
+          const map = TYPE_MAP[n.type] ?? TYPE_MAP.system;
+          return {
+            id:        n.id,
+            type:      n.type,
+            title:     n.title   ?? 'Notification',
+            message:   n.message ?? '',
+            read:      n.is_read ?? false,   // API returns is_read, component uses read
+            time:      n.created_at
+              ? new Date(n.created_at).toLocaleTimeString('en-PH', {
+                  hour: '2-digit', minute: '2-digit',
+                })
+              : '—',
+            icon:      map.icon,
+            iconBg:    map.iconBg,
+            iconColor: map.iconColor,
+          };
+        });
+        setNotifications(normalized);
+      })
+      .catch(console.error);
   }, []);
 
   // Close dropdown when clicking outside
@@ -33,16 +62,20 @@ export default function NotificationBell() {
     return () => document.removeEventListener('mousedown', handleClickOutside);
   }, []);
 
-  const markRead = (id) =>
+  const markRead = (id) => {
+    api.markNotificationRead(id).catch(console.error);
     setNotifications((prev) =>
       prev.map((n) => (n.id === id ? { ...n, read: true } : n))
     );
+  };
 
   const markAllRead = () =>
     setNotifications((prev) => prev.map((n) => ({ ...n, read: true })));
 
-  const dismiss = (id) =>
+  const dismiss = (id) => {
+    api.dismissNotification(id).catch(console.error);
     setNotifications((prev) => prev.filter((n) => n.id !== id));
+  };
 
   return (
     <div className="relative" ref={ref}>

@@ -112,8 +112,22 @@ export default function UserVerification() {
         api.getWorkers(),
         api.getResidents ? api.getResidents() : Promise.resolve([]),
       ]);
-      setWorkers(w || []);
-      setResidents(r || []);
+      setWorkers((w || []).map((worker) => ({
+        ...worker,
+        service:          worker.skill_category_name ?? '—',
+        location:         worker.address             ?? '—',
+        skills:           worker.skill_category_name ? [worker.skill_category_name] : [],
+        rating:           parseFloat(worker.avg_rating) || 0,
+        hourly_rate:      worker.declared_rate       ?? null,
+        daily_rate:       worker.declared_rate       ?? null,  // ← modal reads daily_rate
+        experience_years: worker.years_experience    ?? 0,     // ← modal reads experience_years
+        phone:            worker.contact_number      ?? '—',
+      })));
+      setResidents((r || []).map((resident) => ({
+        ...resident,
+        location: resident.address       ?? '—',
+        phone:    resident.contact_number ?? '—',
+      })));
     } catch (err) { setError(err.message); }
     finally { setLoading(false); }
   }

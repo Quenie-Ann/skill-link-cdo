@@ -8,7 +8,30 @@ import {
   Filter, Search, Star, Clock,
 } from 'lucide-react';
 import { api } from '../../services/api';
-import { STATUS_CONFIG } from '../../data/mockData';
+
+const STATUS_CONFIG = {
+  completed: {
+    bg:    'bg-emerald-50 dark:bg-emerald-900/20',
+    color: 'text-emerald-600 dark:text-emerald-400',
+    badge: 'bg-emerald-100 text-emerald-700 dark:bg-emerald-900/30 dark:text-emerald-400',
+    label: 'Completed',
+    icon:  CheckCircle2,
+  },
+  in_progress: {
+    bg:    'bg-blue-50 dark:bg-blue-900/20',
+    color: 'text-blue-500',
+    badge: 'bg-blue-100 text-blue-700 dark:bg-blue-900/30 dark:text-blue-400',
+    label: 'In Progress',
+    icon:  Briefcase,
+  },
+  cancelled: {
+    bg:    'bg-red-50 dark:bg-red-900/20',
+    color: 'text-red-400',
+    badge: 'bg-red-100 text-red-700 dark:bg-red-900/30 dark:text-red-400',
+    label: 'Cancelled',
+    icon:  Clock,
+  },
+};
 
 export default function WorkerHistory() {
   const { isDarkMode, toggleDarkMode } = useTheme();
@@ -24,7 +47,26 @@ export default function WorkerHistory() {
     const fetchHistory = async () => {
       try {
         const data = await api.getJobHistory();
-        setHistory(data);
+
+        // Normalize JobOffer API shape → what the component expects
+        const normalized = (data || []).map((offer) => ({
+          id:       offer.id,
+          title:    offer.request_title    ?? 'Job Request',
+          service:  offer.category_name   ?? '—',
+          location: offer.request_location ?? '—',
+          resident: offer.resident_name   ?? '—',
+          date:     offer.created_at,
+          pay:      null,
+          rating:   null,
+          // Normalize status: offer 'accepted' + request 'completed' = completed job
+          status: offer.request.status === 'completed'
+            ? 'completed'
+            : offer.status === 'accepted'
+            ? 'in_progress'
+            : 'cancelled',
+        }));
+
+        setHistory(normalized);
       } catch (err) {
         console.error('Failed to load history', err);
       } finally {
@@ -206,7 +248,7 @@ export default function WorkerHistory() {
                           <MapPin size={10} /> {job.location}
                         </span>
                         <span className="flex items-center gap-1">
-                          <Calendar size={10} /> {new Date(job.date).toLocaleDateString()}
+                          <Calendar size={10} /> {job.date ? new Date(job.date).toLocaleDateString('en-PH', { month: 'short', day: 'numeric', year: 'numeric' }) : '—'}
                         </span>
                       </div>
                     </div>
