@@ -697,24 +697,24 @@ export const INITIAL_NOTIFICATIONS = [
 //  Used by: Resident › Dashboard.jsx (service request modal)
 export const SERVICE_CATEGORIES = [
   {
-    value: 'Plumbing',
-    label: 'Plumbing',
+    value: 'Plumber',
+    label: 'Plumber',
     icon: Wrench,
     color: 'text-blue-500',
     bg: 'bg-blue-50 dark:bg-blue-900/20',
     problems: ['Leaking pipe or faucet', 'Clogged drain', 'Water heater issue', 'Low water pressure'],
   },
   {
-    value: 'Electrical',
-    label: 'Electrical',
+    value: 'Electrician',
+    label: 'Electrician',
     icon: Zap,
     color: 'text-amber-500',
     bg: 'bg-amber-50 dark:bg-amber-900/20',
     problems: ['Power outlet issue', 'Circuit breaker tripping', 'Flickering lights'],
   },
   {
-    value: 'Carpentry',
-    label: 'Carpentry',
+    value: 'Carpenter',
+    label: 'Carpenter',
     icon: Hammer,
     color: 'text-orange-500',
     bg: 'bg-orange-50 dark:bg-orange-900/20',
@@ -729,8 +729,8 @@ export const SERVICE_CATEGORIES = [
     problems: ['Cracked walls', 'Tile repair', 'Concrete work', 'Brickwork'],
   },
   {
-    value: 'Welding',
-    label: 'Welding',
+    value: 'Welder',
+    label: 'Welder',
     icon: Flame,
     color: 'text-orange-600 dark:text-orange-400',
     bg: 'bg-orange-50 dark:bg-orange-900/20',
@@ -739,10 +739,11 @@ export const SERVICE_CATEGORIES = [
 ];
 
 export const BUDGET_RANGES = [
-  { value: 'under_300',  label: 'Under ₱300/day'    },
-  { value: '300_400',    label: '₱300 – ₱400/day'   },
-  { value: '400_500',    label: '₱400 – ₱500/day'   },
-  { value: 'above_500',  label: '₱500+/day'         },
+  { value: 'under_500',  label: 'Under ₱500/day'    },
+  { value: '500_550',    label: '₱500 – ₱550/day'   },
+  { value: '550_600',    label: '₱550 – ₱600/day'   },
+  { value: '600_650',    label: '₱600 – ₱650/day'   },
+  { value: 'above_700',  label: '₱700+/day'         },
   { value: 'negotiable', label: 'Open / Negotiable' },
 ];
 

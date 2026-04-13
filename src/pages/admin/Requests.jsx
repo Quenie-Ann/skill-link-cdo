@@ -122,7 +122,17 @@ export default function AdminRequests() {
     try {
       setLoading(true); setError(null);
       const data = await api.getRequests();
-      setRequests(data || []);
+      setRequests((data || []).map((req) => ({
+        ...req,
+        customer_name:   req.resident_name    ?? '—',
+        service_type:    req.category_name    ?? '—',
+        problem:         req.description      ?? '—',
+        location:        req.location_address ?? '—',
+        assigned_worker: null, // populated after offer_accepted in future
+        budget:          req.budget_min && req.budget_max
+          ? `₱${req.budget_min}–₱${req.budget_max}`
+          : req.budget_min ? `₱${req.budget_min}` : '—',
+      })));
     } catch (err) { setError(err.message); }
     finally { setLoading(false); }
   }

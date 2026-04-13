@@ -11,7 +11,7 @@ import {
 // Inline bar chart component 
 function BarChart({ data }) {
   const [hovered, setHovered] = useState(null);
-  const maxReq = Math.max(...data.map((d) => d.requests));
+  const maxReq = data.length > 0 ? Math.max(...data.map((d) => d.requests), 1) : 1;
 
   return (
     <div className="h-48 flex items-end gap-3">
@@ -79,13 +79,74 @@ export default function AdminDashboard() {
           api.getMatchLogs(),
           api.getActivityFeed(),
         ]);
-        setCounts(stats);
-        setWeeklyData(weekly);
 
-        setSkillBreakdown(skills);
-        setMatchLogs(logs);
-        setActivityFeed(feed);
+        setCounts({
+          workers:   stats.total_workers       ?? 0,
+          pending:   stats.pending_requests    ?? 0,
+          requests:  stats.total_requests      ?? 0,
+          completed: stats.completed_requests  ?? 0,
+        });
+
+        setWeeklyData(weekly ?? []);
+
+        const BAR_COLORS = [
+          'bg-skill-primary', 'bg-emerald-400', 'bg-teal-400',
+          'bg-cyan-400', 'bg-blue-400', 'bg-indigo-400', 'bg-violet-400',
+        ];
+        const totalWorkers = (skills ?? []).reduce((s, x) => s + (x.count ?? 0), 0);
+        const normalizedSkills = (skills ?? []).map((s, i) => ({
+          label: s.skill ?? `Category ${i + 1}`,
+          count: s.count ?? 0,
+          pct:   totalWorkers > 0 ? Math.round(((s.count ?? 0) / totalWorkers) * 100) : 0,
+          color: BAR_COLORS[i % BAR_COLORS.length],
+        }));
+        setSkillBreakdown(normalizedSkills);
+
+        // Django returns: [{id, request_title, worker_name, category, match_score, created_at}]
+        const normalizedLogs = (logs ?? []).map((log) => ({
+          id:         log.id,
+          requestId:  log.id?.slice(0, 8)?.toUpperCase() ?? 'REQ-????',
+          service:    log.category ?? '—',
+          resident:   log.request_title ?? '—',
+          assignedAt: log.created_at
+            ? new Date(log.created_at).toLocaleDateString('en-PH', { month: 'short', day: 'numeric' })
+            : '—',
+          topMatch: {
+            name:  log.worker_name ?? '—',
+            score: log.match_score ?? 0,
+          },
+          candidates: [
+            { name: log.worker_name ?? '—', score: log.match_score ?? 0 },
+          ],
+        }));
+        setMatchLogs(normalizedLogs);
+
+        const TYPE_MAP = {
+          match:     { Icon: Zap,          bg: 'bg-skill-primary/10',               color: 'text-skill-primary'  },
+          offer:     { Icon: Briefcase,    bg: 'bg-blue-50 dark:bg-blue-900/20',    color: 'text-blue-500'       },
+          accepted:  { Icon: CheckCircle2, bg: 'bg-emerald-50 dark:bg-emerald-900/20', color: 'text-emerald-500' },
+          completed: { Icon: CheckCircle2, bg: 'bg-teal-50 dark:bg-teal-900/20',    color: 'text-teal-500'       },
+          rating:    { Icon: TrendingUp,   bg: 'bg-amber-50 dark:bg-amber-900/20',  color: 'text-amber-500'      },
+          system:    { Icon: Activity,     bg: 'bg-gray-100 dark:bg-gray-800',      color: 'text-gray-500'       },
+        };
+        const normalizedFeed = (feed ?? []).map((item) => {
+          const map = TYPE_MAP[item.type] ?? TYPE_MAP.system;
+          return {
+            id:    item.id,
+            icon:  map.Icon,
+            bg:    map.bg,
+            color: map.color,
+            title: item.title ?? '—',
+            sub:   item.message ?? '—',
+            time:  item.created_at
+              ? new Date(item.created_at).toLocaleTimeString('en-PH', { hour: '2-digit', minute: '2-digit' })
+              : '—',
+          };
+        });
+        setActivityFeed(normalizedFeed);
+
       } catch (err) {
+        console.error('Dashboard fetch error:', err);
         setError('Could not load dashboard data.');
       }
     }

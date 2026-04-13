@@ -34,16 +34,45 @@ export default function ResidentDirectory() {
     const loadWorkers = async () => {
       try {
         setLoading(true);
-        const data = await api.getWorkers();
-        setWorkers(data || []);
+
+        // Resolve the actual category name from the skill categories API
+        // so we always pass the exact name the database uses
+        let categoryFilter = matchRequest?.service_category ?? null;
+
+        if (categoryFilter) {
+          try {
+            const cats = await api.getSkillCategories();
+            const match = (cats || []).find(
+              (c) => c.category_name.toLowerCase() === categoryFilter.toLowerCase()
+            );
+            // Use the exact DB name if found, otherwise keep what we have
+            if (match) categoryFilter = match.category_name;
+          } catch (_) {}
+        }
+
+        const data = await api.getWorkers(categoryFilter);
+
+        const normalized = (data || []).map((w) => ({
+          ...w,
+          service:          w.skill_category_name ?? '—',
+          location:         w.address             ?? '—',
+          rating:           parseFloat(w.avg_rating) || 0,
+          daily_rate:       w.declared_rate       ?? 0,
+          phone:            w.contact_number      ?? '—',
+          availability:     (w.availability_schedule || []).join(', ') || 'Flexible',
+          experience_years: w.years_experience    ?? 0,
+          jobs_done:        0,
+          skills:           w.skill_category_name ? [w.skill_category_name] : [],
+        }));
+
+        setWorkers(normalized);
       } catch (error) {
-        console.error('Failed to load workers:', error);
       } finally {
         setLoading(false);
       }
     };
     loadWorkers();
-  }, []);
+  }, [matchRequest]);
 
   // Derive mock ML match scores based on the submitted matchRequest.
   // For the demo, we seed a deterministic score per worker so ranked order is stable.
@@ -64,19 +93,40 @@ export default function ResidentDirectory() {
   }, [workers, matchRequest]);
 
   const filtered = workersWithScores.filter((w) => {
+    // If a job request was submitted, only show workers matching that category
+    const matchCategory = matchRequest
+      ? w.service?.toLowerCase() === matchRequest.service_category?.toLowerCase()
+      : true;
+
     const matchSearch =
       w.full_name?.toLowerCase().includes(searchTerm.toLowerCase()) ||
       w.service?.toLowerCase().includes(searchTerm.toLowerCase()) ||
       (w.skills || []).some((s) => s.toLowerCase().includes(searchTerm.toLowerCase())) ||
       w.location?.toLowerCase().includes(searchTerm.toLowerCase());
+
     const matchFilter = activeFilter === 'All' || w.service === activeFilter;
-    return matchSearch && matchFilter;
+
+    return matchCategory && matchSearch && matchFilter;
   });
 
   // "Send Offer" — sets offer state and closes modal
-  function handleSendOffer(worker) {
-    setOfferedIds((prev) => [...prev, worker.id]);
-    setSelectedWorker(null);
+  async function handleSendOffer(worker) {
+    // Guard — needs a real request ID to send an offer
+    if (!matchRequest?.id) {
+      alert('Please submit a service request first before sending an offer.');
+      return;
+    }
+
+    try {
+      await api.sendOffer(matchRequest.id, worker.id);
+
+      // Only update UI after the API confirms success
+      setOfferedIds((prev) => [...prev, worker.id]);
+      setSelectedWorker(null);
+    } catch (err) {
+      // Show the error from Django instead of silently failing
+      alert(`Failed to send offer: ${err.message}`);
+    }
   }
 
   return (
@@ -153,7 +203,7 @@ export default function ResidentDirectory() {
               {matchRequest.service_category} · {matchRequest.specific_problem}
             </p>
             <p className="text-[10px] text-gray-400 mt-0.5">
-              Workers ranked by ML score for your specific request · {matchRequest.location}
+              Showing verified <span className="font-bold text-skill-primary">{matchRequest.service_category}</span> workers for your request · {matchRequest.location}
             </p>
           </div>
           <button
@@ -199,13 +249,27 @@ export default function ResidentDirectory() {
         ) : filtered.length === 0 ? (
           <div className="text-center py-24">
             <Search size={48} className="text-gray-200 dark:text-gray-700 mx-auto mb-4" />
-            <p className="text-gray-400 font-medium">No workers found.</p>
-            <button
-              onClick={() => { setSearchTerm(''); setActiveFilter('All'); }}
-              className="mt-4 text-skill-primary text-sm font-bold hover:underline"
-            >
-              Clear filters
-            </button>
+            <p className="text-gray-400 font-medium">
+              {matchRequest
+                ? `No verified ${matchRequest.service_category} workers are currently available.`
+                : 'No workers found.'}
+            </p>
+            {searchTerm && (
+              <button
+                onClick={() => { setSearchTerm(''); setActiveFilter('All'); }}
+                className="mt-4 text-skill-primary text-sm font-bold hover:underline"
+              >
+                Clear search
+              </button>
+            )}
+            {matchRequest && (
+              <button
+                onClick={() => navigate('/resident/dashboard')}
+                className="mt-3 text-gray-400 text-sm font-bold hover:underline block mx-auto"
+              >
+                Go back and change your request
+              </button>
+            )}
           </div>
         ) : (
           <div className="grid grid-cols-1 md:grid-cols-2 xl:grid-cols-3 gap-5">
@@ -381,12 +445,12 @@ export default function ResidentDirectory() {
               {/* Contact details */}
               <div className="space-y-3">
                 {[
-                  { icon: MapPin,    value: selectedWorker.location   },
-                  { icon: Phone,     value: selectedWorker.phone       },
-                  { icon: Clock,     value: `Available: ${selectedWorker.availability}` },
-                  { icon: Briefcase, value: `₱${selectedWorker.daily_rate}/day` }, // R-05: /hr → /day
-                ].map(({ icon: Icon, value }) => (
-                  <p key={value} className="flex items-center gap-3 text-sm text-gray-600 dark:text-gray-300">
+                  { icon: MapPin,    label: 'location',     value: selectedWorker.location   },
+                  { icon: Phone,     label: 'phone',        value: selectedWorker.phone       },
+                  { icon: Clock,     label: 'availability', value: `Available: ${selectedWorker.availability}` },
+                  { icon: Briefcase, label: 'rate',         value: `₱${selectedWorker.daily_rate}/day` },
+                ].map(({ icon: Icon, label, value }) => (
+                  <p key={label} className="flex items-center gap-3 text-sm text-gray-600 dark:text-gray-300">
                     <Icon size={14} className="text-skill-primary flex-shrink-0" /> {value}
                   </p>
                 ))}

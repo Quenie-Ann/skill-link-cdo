@@ -1,82 +1,98 @@
 /**
  * src/services/auth.js
- *  LOCAL AUTH SERVICE                                                                                                    │
- *  Handles sign-in, session persistence, and sign-out for    
- *  the static mock users defined in mockData.js.             
+ *
+ * AUTH SERVICE
+ * Handles sign-in, session persistence, and sign-out.
+ * After login, fetches /api/me/ so that full_name is always
+ * available in the session — used by the Sidebar and any
+ * component that needs the user's display name.
  */
 
-import { STATIC_USERS } from '../data/mockData';
-
 const SESSION_KEY = 'barangayskill_session';
+const BASE_URL    = 'http://127.0.0.1:8000/api';
 
 export const localAuth = {
 
   /**
    * Sign in with email + password.
-   * Used by: Login.jsx
+   * Django LoginView returns: { access, refresh, role, email, user_id }
+   * We then call /api/me/ with the fresh token to get full_name.
    */
-  signIn(email, password) {
-    const match = STATIC_USERS.find(
-      (u) => u.email === email && u.password === password,
-    );
+  async signIn(email, password) {
 
-    if (!match) {
-      throw new Error('Invalid email or password. Please try again.');
+    localStorage.removeItem(SESSION_KEY);
+    // Step 1: get JWT + role 
+    const res = await fetch(`${BASE_URL}/login/`, {
+      method:  'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body:    JSON.stringify({ email, password }),
+    });
+
+    if (!res.ok) {
+      let message = 'Invalid credentials';
+      try {
+        const err = await res.json();
+        message = err.error || err.detail || message;
+      } catch { /* ignore parse errors */ }
+      throw new Error(message);
     }
 
-    // Strip password before storing — never persist credentials
-    const { password: _pw, ...sessionUser } = match;
+    const data = await res.json();
+
+    if (!data.role) {
+      throw new Error('Server did not return a role. Contact your administrator.');
+    }
+
+    // Step 2: fetch full_name from /api/me/ 
+    // MeView returns { id, email, role, full_name, ... }
+    let fullName = data.email; // safe fallback if /me/ fails
+    try {
+      const meRes = await fetch(`${BASE_URL}/me/`, {
+        headers: { Authorization: `Bearer ${data.access}` },
+      });
+      if (meRes.ok) {
+        const me = await meRes.json();
+        fullName = me.full_name || me.email || data.email;
+      }
+    } catch {
+      // Non-fatal — sidebar will fall back to email
+    }
+
+    const sessionUser = {
+      email:     data.email,
+      role:      data.role.toLowerCase(),
+      user_id:   data.user_id,
+      full_name: fullName, 
+      access:    data.access,
+      refresh:   data.refresh,
+    };
 
     localStorage.setItem(SESSION_KEY, JSON.stringify(sessionUser));
     return { user: sessionUser };
   },
 
-  /**
-   * Check for an existing session on app load.
-   * Used by: App.jsx (initial auth gate)
-   */
+  /** Check for an existing session on app load. Used by: App.jsx */
   getSession() {
     const raw = localStorage.getItem(SESSION_KEY);
     if (!raw) return null;
-
     try {
       return JSON.parse(raw);
     } catch {
-      // Corrupt storage — clear and force re-login
       localStorage.removeItem(SESSION_KEY);
       return null;
     }
   },
 
-  /**
-   * Sign out the current user.
-   * Used by: Sidebar.jsx logout button (all portals)
-   */
+  /** Sign out. Used by: Sidebar.jsx */
   signOut() {
     localStorage.removeItem(SESSION_KEY);
   },
 
-  /**
-   * Get the currently logged-in user.
-   * Alias of getSession() — kept for backwards compatibility
-   * with any component that calls localAuth.getCurrentUser().
-   */
-  getCurrentUser() {
-    return this.getSession();
-  },
+  /** Alias of getSession() — backwards compatibility */
+  getCurrentUser() { return this.getSession(); },
 
-  /**
-   * Check if a user is currently authenticated.
-   * Convenience helper for route guards.
-   */
-  isAuthenticated() {
-    return this.getSession() !== null;
-  },
+  isAuthenticated() { return this.getSession() !== null; },
 
-  /**
-   * Get the role of the current user.
-   * Used by: App.jsx ProtectedRoute, Sidebar.jsx role checks.
-   */
   getRole() {
     const user = this.getSession();
     return user ? user.role : null;

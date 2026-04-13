@@ -24,9 +24,36 @@ export default function WorkerProfile() {
   useEffect(() => {
     const loadProfile = async () => {
       try {
-        const data = await api.getProfile();
-        setProfile(data);
-        setDraft(data);
+        const [data, stats] = await Promise.all([
+          api.getProfile(),
+          api.getWorkerStats(),
+        ]);
+
+        const DAY_MAP = {
+          'Monday': 'Mon', 'Tuesday': 'Tue', 'Wednesday': 'Wed',
+          'Thursday': 'Thu', 'Friday': 'Fri', 'Saturday': 'Sat', 'Sunday': 'Sun'
+        };
+
+        const sanitizedData = {
+          ...data,
+          experience_years:      data.years_experience  ?? data.experience_years  ?? 0,
+          daily_rate:            data.declared_rate     ?? data.daily_rate         ?? 0,
+          phone:                 data.contact_number    ?? data.phone              ?? '',
+          skills: data.skills
+            ? (Array.isArray(data.skills)
+                ? data.skills
+                : data.skills.split(',').map(s => s.trim()).filter(Boolean))
+            : (data.skill_category_name ? [data.skill_category_name] : []),
+          availability_schedule: (data.availability_schedule || []).map(
+            (d) => DAY_MAP[d] ?? d
+          ),
+          // Merge stats into profile
+          total_completed: stats?.total_completed ?? 0,
+          avg_rating:      data.avg_rating        ?? 0,
+        };
+
+        setProfile(sanitizedData);
+        setDraft(sanitizedData);
       } catch (err) {
         console.error('Failed to load:', err);
       } finally {
@@ -38,12 +65,23 @@ export default function WorkerProfile() {
 
   const handleEdit   = () => { setDraft({ ...profile }); setIsEditing(true); setSaved(false); };
   const handleCancel = () => { setDraft({ ...profile }); setIsEditing(false); };
-  const handleSave   = async () => {
-    await api.updateProfile(draft);
-    setProfile({ ...draft });
-    setSaved(true);
-    setIsEditing(false);
-  };
+  const handleSave = async () => {
+  // Map short day names back → full names for the API
+      const FULL_DAY_MAP = {
+        'Mon': 'Monday', 'Tue': 'Tuesday', 'Wed': 'Wednesday',
+        'Thu': 'Thursday', 'Fri': 'Friday', 'Sat': 'Saturday', 'Sun': 'Sunday'
+      };
+      const fullDays = (draft.availability_schedule || []).map(
+        (d) => FULL_DAY_MAP[d] ?? d
+      );
+      await Promise.all([
+        api.updateProfile(draft),
+        api.updateAvailabilitySchedule(fullDays),
+      ]);
+      setProfile({ ...draft });
+      setSaved(true);
+      setIsEditing(false);
+    };
 
   const toggleSkill = (skill) =>
     setDraft((prev) => ({
@@ -84,6 +122,14 @@ export default function WorkerProfile() {
     'w-full px-4 py-3 bg-skill-light dark:bg-dark-bg border-2 border-transparent focus:border-skill-primary rounded-lg outline-none transition-all text-sm dark:text-white';
   const readClass =
     'w-full px-4 py-3 bg-gray-50 dark:bg-dark-bg/60 rounded-lg text-sm text-skill-dark dark:text-white';
+
+  if (loading || !profile) {
+    return (
+      <div className="min-h-screen flex items-center justify-center bg-skill-light dark:bg-dark-bg">
+        <div className="animate-spin rounded-full h-8 w-8 border-b-2 border-skill-primary"></div>
+      </div>
+    );
+  }
 
   return (
     <div className="min-h-screen bg-skill-light dark:bg-dark-bg transition-colors duration-300">
@@ -168,10 +214,10 @@ export default function WorkerProfile() {
               </p>
               <div className="grid grid-cols-2 gap-3">
                 {[
-                  { label: 'Yrs Exp.',   value: profile.experience_years       },
-                  { label: 'Rating',     value: '4.8 ★', special: true          },
-                  { label: 'Rate/day',   value: `₱${profile.daily_rate}`       },
-                  { label: 'Jobs Done',  value: 12                              },
+                  { label: 'Yrs Exp.',  value: profile.experience_years ?? 0                                          },
+                  { label: 'Rating',    value: profile.avg_rating > 0 ? `${parseFloat(profile.avg_rating).toFixed(1)} ★` : '—', special: true },
+                  { label: 'Rate/day',  value: profile.declared_rate ? `₱${profile.declared_rate}` : '—'             },
+                  { label: 'Jobs Done', value: profile.total_completed ?? 0                                           },
                 ].map(({ label, value, special }) => (
                   <div key={label} className="bg-skill-light dark:bg-dark-bg rounded-lg p-4 text-center">
                     <p className={`text-xl font-black ${special ? 'text-amber-500' : 'text-skill-dark dark:text-white'}`}>
@@ -290,7 +336,7 @@ export default function WorkerProfile() {
               <div>
                 <label className="block text-[10px] font-bold text-gray-400 uppercase tracking-widest mb-3">Skills</label>
                 <div className="flex flex-wrap gap-2 mb-3">
-                  {(isEditing ? draft.skills : profile.skills).map((skill) => (
+                  {(isEditing ? draft.skills : profile?.skills).map((skill) => (
                     <span
                       key={skill}
                       className="flex items-center gap-1.5 px-3 py-1.5 bg-skill-primary/10 text-skill-dark dark:text-skill-primary rounded-xl text-xs font-bold"

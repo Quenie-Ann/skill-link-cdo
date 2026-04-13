@@ -10,6 +10,7 @@ import Login from './pages/auth/Login';
 // Admin
 import AdminDashboard from './pages/admin/AdminDashboard';
 import UserVerification        from './pages/admin/UserVerification';
+import RegisterUser from './pages/admin/RegisterUser';
 import Requests       from './pages/admin/Requests';
 
 // Worker
@@ -59,10 +60,24 @@ function App() {
     </div>
   );
 
-  /** Guards a route by role */
+  //** Guards a route by role */
   const ProtectedRoute = ({ role, children }) => {
-    if (!currentUser)             return <Navigate to="/login" replace />;
-    if (currentUser.role !== role) return <Navigate to="/login" replace />;
+    // 1. Check if user exists at all
+    if (!currentUser) {
+      return <Navigate to="/login" replace />;
+    }
+
+    // 2. Check if the role is valid and matches
+    // Added .toLowerCase() to ensure 'Admin' vs 'admin' doesn't cause a crash
+    const userRole = currentUser.role?.toLowerCase();
+    const requiredRole = role.toLowerCase();
+
+    if (userRole !== requiredRole) {
+      // If the user has a role, but not the right one, 
+      // send them to their OWN dashboard instead of Login.
+      return <Navigate to={`/${userRole || 'resident'}/dashboard`} replace />;
+    }
+
     return <ProtectedLayout>{children}</ProtectedLayout>;
   };
 
@@ -70,12 +85,12 @@ function App() {
     <Router>
       <Routes>
 
-        {/* Login */}
+        {/* Login Route */}
         <Route
           path="/login"
           element={
-            currentUser
-              ? <Navigate to={`/${currentUser.role}/dashboard`} replace />
+            currentUser && currentUser.role 
+              ? <Navigate to={`/${currentUser.role.toLowerCase()}/dashboard`} replace />
               : <Login onLoginSuccess={setCurrentUser} />
           }
         />
@@ -84,7 +99,8 @@ function App() {
         <Route path="/admin/dashboard" element={<ProtectedRoute role="admin"><AdminDashboard /></ProtectedRoute>} />
         <Route path="/admin/users"     element={<ProtectedRoute role="admin"><UserVerification /></ProtectedRoute>} />
         <Route path="/admin/requests"  element={<ProtectedRoute role="admin"><Requests /></ProtectedRoute>} />
-
+        <Route path="/admin/register" element={<ProtectedRoute role="admin"><RegisterUser /></ProtectedRoute>} />
+       
         {/* Worker */}
         <Route path="/worker/dashboard" element={<ProtectedRoute role="worker"><WorkerDashboard /></ProtectedRoute>} />
         <Route path="/worker/history"   element={<ProtectedRoute role="worker"><WorkerHistory /></ProtectedRoute>} />
@@ -94,8 +110,12 @@ function App() {
         <Route path="/resident/dashboard" element={<ProtectedRoute role="resident"><ResidentDashboard /></ProtectedRoute>} />
         <Route path="/resident/directory" element={<ProtectedRoute role="resident"><ResidentDirectory /></ProtectedRoute>} />
 
-        {/* Fallback */}
-        <Route path="*" element={<Navigate to="/login" replace />} />
+        {/* Fallback - IMPORTANT: Don't redirect to login if user is already logged in */}
+        <Route path="*" element={
+          currentUser 
+            ? <Navigate to={`/${currentUser.role || 'resident'}/dashboard`} replace /> 
+            : <Navigate to="/login" replace />
+        } />
 
       </Routes>
     </Router>

@@ -94,9 +94,22 @@ export default function ResidentDashboard() {
   // Rating modal
   const [ratingTarget, setRatingTarget] = useState(null);
 
-  // Load resident's requests on mount
+  // Load resident's requests on mount + pre-fill location from profile
   useEffect(() => {
-    api.getResidentRequests().then(setRequests).catch(console.error);
+    // Load resident's own requests
+    api.getResidentRequests()
+      .then((data) => setRequests(data || []))
+      .catch(console.error);
+
+    // Pre-fill location from resident profile
+    api.getResidentProfile()
+      .then((profile) => {
+        setForm((prev) => ({
+          ...prev,
+          location: profile.address ?? '',
+        }));
+      })
+      .catch(console.error);
   }, []);
 
   const selectedCategory = SERVICE_CATEGORIES.find((c) => c.value === form.service_category);
@@ -114,22 +127,36 @@ export default function ResidentDashboard() {
     setSubmitting(true);
     setFormError('');
     try {
-      await api.createRequest({
-        customer_name: 'Maria Santos',
-        service_type:  form.service_category,
-        notes: [
+      // Resolve category UUID
+      let categoryId = null;
+      try {
+        const cats = await api.getSkillCategories();
+        const match = (cats || []).find(
+          (c) => c.category_name.toLowerCase() === form.service_category.toLowerCase()
+        );
+        categoryId = match?.id ?? null;
+      } catch (_) {}
+
+      // Create the request and capture the returned object with its ID
+      const createdRequest = await api.createRequest({
+        title:            form.specific_problem || form.service_category,
+        description:      [
           `Problem: ${form.specific_problem}`,
-          `Budget: ${BUDGET_RANGES.find((b) => b.value === form.budget_range)?.label}`,
-          `Preferred Start: ${PREFERRED_START_OPTIONS.find((p) => p.value === form.preferred_start)?.label}`,
+          `Budget: ${BUDGET_RANGES.find((b) => b.value === form.budget_range)?.label ?? form.budget_range}`,
           `Schedule: ${form.schedule}`,
-          `Location: ${form.location}`,
           form.notes ? `Notes: ${form.notes}` : '',
         ].filter(Boolean).join(' | '),
+        location_address: form.location,
+        category:         categoryId,
       });
+
       closeModal();
+
+      // Pass the real request ID to the directory page
       navigate('/resident/directory', {
         state: {
           matchRequest: {
+            id:               createdRequest.id,   // ← this is the key addition
             service_category: form.service_category,
             specific_problem: form.specific_problem,
             budget_range:     form.budget_range,
@@ -140,7 +167,7 @@ export default function ResidentDashboard() {
         },
       });
     } catch (err) {
-      setFormError(err.message);
+      setFormError(err.message || 'Failed to submit request. Please try again.');
     } finally {
       setSubmitting(false);
     }

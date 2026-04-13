@@ -47,12 +47,39 @@ export default function WorkerDashboard() {
   // On mount: fetch incoming offer only — active job shown only after worker accepts
   useEffect(() => {
     async function fetchData() {
-      const [profile, incoming] = await Promise.all([
+      const [profile, incomingRaw] = await Promise.all([
         api.getProfile(),
         api.getIncomingJob(),
       ]);
-      setWorker(profile);
-      setIncomingJob(incoming);
+      setWorker({
+        ...profile,
+        service:    profile.skill_category_name ?? 'Specialist',
+        rating:     parseFloat(profile.avg_rating) || 0,
+        jobs_done:  0,
+        daily_rate: profile.declared_rate ?? 0,
+        phone:      profile.contact_number ?? '—',
+      });
+
+      // Only set if API explicitly says has_offer: true
+      const incoming = incomingRaw?.has_offer ? incomingRaw.offer : null;
+      if (incoming && incoming.id) {
+        setIncomingJob({
+          ...incoming,
+          problem:         incoming.request_title       ?? 'Job Request',
+          description:     incoming.request_description ?? '—',
+          service:         incoming.category_name       ?? '—',
+          match_score:     incoming.match_score         ?? 0,
+          distance:        '—',
+          schedule:        '—',
+          preferred_start: '—',
+          resident: {
+            name:    incoming.resident_name    ?? '—',
+            address: incoming.request_location ?? '—',
+          },
+        });
+      } else {
+        setIncomingJob(null);
+      }
     }
     fetchData().catch(console.error);
   }, []);
