@@ -369,14 +369,9 @@ export default function RateGovernance() {
         <div className="flex items-start gap-3 p-4 bg-blue-50 dark:bg-blue-900/20 border border-blue-200 dark:border-blue-800 rounded-xl">
           <Info size={15} className="text-blue-500 flex-shrink-0 mt-0.5" />
           <p className="text-xs text-blue-700 dark:text-blue-300 leading-relaxed">
-            Skill categories and job types defined here replace the hardcoded lists in the
-            frontend. Rate bands set here are enforced at worker registration — a declared
+            Skill categories and job types are defined here.
+            Rate bands set here are enforced at worker registration — a declared
             rate outside the band auto-flags the profile for admin review.
-            After updating a rate band, run{' '}
-            <code className="font-mono bg-blue-100 dark:bg-blue-900/40 px-1 rounded">
-              python manage.py enforce_rate_bands
-            </code>{' '}
-            to apply the new band to existing workers.
           </p>
         </div>
 
