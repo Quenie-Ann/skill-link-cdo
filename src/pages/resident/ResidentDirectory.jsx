@@ -237,6 +237,7 @@ export default function ResidentDirectory() {
       w.service?.toLowerCase().includes(searchTerm.toLowerCase()) ||
       (w.skills || []).some((s) => s.toLowerCase().includes(searchTerm.toLowerCase())) ||
       w.location?.toLowerCase().includes(searchTerm.toLowerCase());
+
     const matchFilter = activeFilter === 'All' || w.service === activeFilter;
     return matchCategory && matchSearch && matchFilter;
   }), [workersWithScores, matchRequest, searchTerm, activeFilter]);
