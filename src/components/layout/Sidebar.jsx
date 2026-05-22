@@ -3,7 +3,7 @@ import { Link, useLocation } from 'react-router-dom';
 import {
   LogOut, Users, ClipboardList, BrainCircuit,
   BarChart3, Zap, ChevronLeft, ChevronRight, UserCircle,
-  Leaf, UserPlus,
+  Leaf, UserPlus, Settings,
 } from 'lucide-react';
 
 export default function Sidebar({ currentUser, onLogout }) {
@@ -20,15 +20,19 @@ export default function Sidebar({ currentUser, onLogout }) {
       { path: '/admin/users',     label: 'User Verification', icon: Users         },
       { path: '/admin/register',  label: 'Register User',     icon: UserPlus      },
       { path: '/admin/requests',  label: 'All Requests',      icon: ClipboardList },
+      { path: '/admin/rates',     label: 'Rate Governance',   icon: BrainCircuit  },
+      { path: '/admin/settings',  label: 'Account Settings',  icon: Settings},
     ],
     worker: [
       { path: '/worker/dashboard', label: 'Job Matches', icon: Zap          },
       { path: '/worker/history',   label: 'My Jobs',     icon: ClipboardList },
       { path: '/worker/profile',   label: 'My Profile',  icon: BrainCircuit  },
+      { path: '/worker/settings',  label: 'Account Settings',  icon: Settings},
     ],
     resident: [
       { path: '/resident/dashboard', label: 'My Requests',  icon: ClipboardList },
       { path: '/resident/directory', label: 'Find Workers', icon: Users         },
+      { path: '/resident/settings',  label: 'Account Settings',  icon: Settings},
     ],
   };
 
