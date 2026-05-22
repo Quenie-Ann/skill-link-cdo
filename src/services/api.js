@@ -109,6 +109,14 @@ export const api = {
         ? `/workers/?category=${encodeURIComponent(category)}`
         : '/workers/'
       ),
+  
+  getWorkerDirectory: (categoryId = null) =>
+  USE_MOCK
+    ? mock(MOCK_WORKERS)
+    : request('GET', categoryId
+        ? `/workers/directory/?category=${categoryId}`
+        : '/workers/directory/'
+      ),
 
   // Verify or un-verify a worker.
   verifyWorker: (id, isVerified) =>
@@ -252,12 +260,23 @@ export const api = {
     ? mock([])
     : request('GET', '/skill-categories/'),
 
+  getJobTypes: async (categoryId) => {
+     const res = await fetch(
+       `${BASE_URL}/skill-categories/${categoryId}/job-types/`,
+       { headers: authHeaders() }
+     );
+     if (!res.ok) throw new Error('Failed to load job types.');
+     return res.json();
+   },
+
   // Send a job offer to a specific worker for a specific request
-  sendOffer: (requestId, workerId) =>
+  sendOffer: (requestId, workerId, matchScore = null) =>
     USE_MOCK
       ? mock({ success: true })
-      : request('POST', `/requests/${requestId}/send-offer/${workerId}/`),
-
+      : request('POST', `/requests/${requestId}/send-offer/${workerId}/`, {
+          match_score: matchScore,
+        }), 
+        
   // NOTIFICATIONS (all portals)
   // Unread + recent notifications for NotificationBell.
   getNotifications: () =>

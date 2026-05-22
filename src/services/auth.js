@@ -97,4 +97,76 @@ export const localAuth = {
     const user = this.getSession();
     return user ? user.role : null;
   },
+
+  /** Fetch real live telemetry profiles from Django backend models */
+  async getSecurityOverview() {
+    const session = this.getSession();
+    if (!session?.access) throw new Error("No active session key available.");
+
+    const res = await fetch(`${BASE_URL}/user/security-overview/`, {
+      method: 'GET',
+      headers: {
+        'Authorization': `Bearer ${session.access}`,
+        'Content-Type': 'application/json'
+      }
+    });
+    if (!res.ok) throw new Error("Could not retrieve server security logs.");
+    return await res.json();
+  },
+
+  /** Send password updates to backend handler */
+  async changePassword(currentPassword, newPassword) {
+    const session = this.getSession();
+    if (!session?.access) throw new Error("No active authorization key found.");
+
+    const res = await fetch(`${BASE_URL}/user/change-password/`, {
+      method: 'POST',
+      headers: {
+        'Authorization': `Bearer ${session.access}`,
+        'Content-Type': 'application/json'
+      },
+      body: JSON.stringify({
+        current_password: currentPassword,
+        new_password: newPassword
+      })
+    });
+
+    const data = await res.json();
+    if (!res.ok) {
+      throw new Error(data.error || data.detail || "Failed to alter password parameters.");
+    }
+    return data;
+  },
+
+  /** Revoke session items */
+  async revokeSession(id) {
+    const session = this.getSession();
+    if (!session?.access) throw new Error("No active token session context.");
+
+    const res = await fetch(`${BASE_URL}/user/revoke-session/${id}/`, {
+      method: 'POST',
+      headers: {
+        'Authorization': `Bearer ${session.access}`,
+        'Content-Type': 'application/json'
+      }
+    });
+    if (!res.ok) throw new Error("Could not drop session registry instance.");
+    return true;
+  },
+
+  /** Request account absolute profile erasure under RA 10173 context rules */
+  async executePrivacyErasure() {
+    const session = this.getSession();
+    if (!session?.access) throw new Error("Unauthorized request tracking block.");
+
+    const res = await fetch(`${BASE_URL}/user/privacy-erasure/`, {
+      method: 'POST',
+      headers: {
+        'Authorization': `Bearer ${session.access}`,
+        'Content-Type': 'application/json'
+      }
+    });
+    if (!res.ok) throw new Error("Data deletion constraint processing failed.");
+    return true;
+  }
 };

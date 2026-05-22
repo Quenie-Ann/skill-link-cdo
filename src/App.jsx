@@ -3,6 +3,8 @@ import { useState, useEffect } from 'react';
 import { localAuth } from './services/auth';
 import { ThemeProvider } from './context/ThemeContext';
 import Sidebar from './components/layout/Sidebar';
+import SecurityScreens from './components/security/SecurityScreens';
+
 
 // Auth
 import Login from './pages/auth/Login';
@@ -12,6 +14,7 @@ import AdminDashboard from './pages/admin/AdminDashboard';
 import UserVerification        from './pages/admin/UserVerification';
 import RegisterUser from './pages/admin/RegisterUser';
 import Requests       from './pages/admin/Requests';
+import RateGovernance from './pages/admin/RateGovernance';
 
 // Worker
 import WorkerDashboard from './pages/worker/WorkerDashboard';
@@ -100,15 +103,20 @@ function App() {
         <Route path="/admin/users"     element={<ProtectedRoute role="admin"><UserVerification /></ProtectedRoute>} />
         <Route path="/admin/requests"  element={<ProtectedRoute role="admin"><Requests /></ProtectedRoute>} />
         <Route path="/admin/register" element={<ProtectedRoute role="admin"><RegisterUser /></ProtectedRoute>} />
-       
+        <Route path="/admin/rates"    element={<ProtectedRoute role="admin"><RateGovernance /></ProtectedRoute>} />
+        <Route path="/admin/settings" element={<ProtectedRoute role="admin"><SecurityScreens /></ProtectedRoute>} />
+        
+
         {/* Worker */}
         <Route path="/worker/dashboard" element={<ProtectedRoute role="worker"><WorkerDashboard /></ProtectedRoute>} />
         <Route path="/worker/history"   element={<ProtectedRoute role="worker"><WorkerHistory /></ProtectedRoute>} />
         <Route path="/worker/profile"   element={<ProtectedRoute role="worker"><WorkerProfile /></ProtectedRoute>} />
+        <Route path="/worker/settings"   element={<ProtectedRoute role="worker"><SecurityScreens /></ProtectedRoute>} />
 
         {/* Resident */}
         <Route path="/resident/dashboard" element={<ProtectedRoute role="resident"><ResidentDashboard /></ProtectedRoute>} />
         <Route path="/resident/directory" element={<ProtectedRoute role="resident"><ResidentDirectory /></ProtectedRoute>} />
+        <Route path="/resident/settings"   element={<ProtectedRoute role="resident"><SecurityScreens /></ProtectedRoute>} />
 
         {/* Fallback - IMPORTANT: Don't redirect to login if user is already logged in */}
         <Route path="*" element={
