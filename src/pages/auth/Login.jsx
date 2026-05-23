@@ -1,21 +1,19 @@
 // src/pages/auth/Login.jsx
 import React, { useState, useEffect } from 'react';
 import { localAuth } from '../../services/auth'; 
-import { useNavigate } from 'react-router-dom';
+import { useNavigate, Link } from 'react-router-dom';
 import { Sun, Moon, Mail, Lock, AlertCircle } from 'lucide-react';
 import workspaceImg from '../../assets/background.jpg';
 
-const Login = ({ onLoginSuccess }) => { // Added prop to update App.jsx state
+const Login = ({ onLoginSuccess }) => {
   const navigate = useNavigate();
 
-  // Form & UI State 
   const [formData, setFormData] = useState({ email: "", password: "" });
   const [errors, setErrors] = useState({});
   const [loginError, setLoginError] = useState("");
   const [isLoading, setIsLoading] = useState(false);
   const [isDark, setIsDark] = useState(false);
 
-  // Dark Mode Toggle Logic 
   useEffect(() => {
     if (isDark) document.documentElement.classList.add('dark');
     else document.documentElement.classList.remove('dark');
@@ -35,7 +33,6 @@ const Login = ({ onLoginSuccess }) => { // Added prop to update App.jsx state
     return e;
   }
 
-  // UPDATED Submission using Django backend and JWT auth
   async function handleSubmit(e) {
     e.preventDefault();
     const validationErrors = validate();
@@ -48,14 +45,10 @@ const Login = ({ onLoginSuccess }) => { // Added prop to update App.jsx state
     
     try {
       const { user } = await localAuth.signIn(formData.email.trim(), formData.password);
-
       setIsLoading(false);
-      
       if (onLoginSuccess) onLoginSuccess(user);
-
       const userRole = user.role || 'resident'; 
       navigate(`/${userRole}/dashboard`);
-
     } catch (err) {
       setIsLoading(false);
       setLoginError(err.message);
@@ -98,6 +91,7 @@ const Login = ({ onLoginSuccess }) => { // Added prop to update App.jsx state
                   placeholder="admin@example.com"
                 />
               </div>
+              {errors.email && <p className="text-red-500 text-xs mt-1">{errors.email}</p>}
             </div>
 
             <div>
@@ -110,6 +104,7 @@ const Login = ({ onLoginSuccess }) => { // Added prop to update App.jsx state
                   placeholder="••••••••"
                 />
               </div>
+              {errors.password && <p className="text-red-500 text-xs mt-1">{errors.password}</p>}
             </div>
 
             {loginError && (
@@ -123,8 +118,15 @@ const Login = ({ onLoginSuccess }) => { // Added prop to update App.jsx state
             >
               {isLoading ? "Authenticating..." : "Sign In"}
             </button>
+
+            {/* ── [BAG-O] Sign Up link ── */}
+            <p className="text-center text-sm text-gray-500 dark:text-gray-400">
+              Don't have an account?{' '}
+              <Link to="/register" className="text-skill-primary font-semibold hover:underline">
+                Sign Up
+              </Link>
+            </p>
           </form>
-          
         </div>
       </div>
     </div>
