@@ -8,6 +8,7 @@ import SecurityScreens from './components/security/SecurityScreens';
 
 // Auth
 import Login from './pages/auth/Login';
+import Register from './pages/auth/Register';
 
 // Admin
 import AdminDashboard from './pages/admin/AdminDashboard';
@@ -95,6 +96,16 @@ function App() {
             currentUser && currentUser.role 
               ? <Navigate to={`/${currentUser.role.toLowerCase()}/dashboard`} replace />
               : <Login onLoginSuccess={setCurrentUser} />
+          }
+        />
+
+        {/* Register Route */}
+        <Route
+          path="/register"
+          element={
+            currentUser && currentUser.role
+              ? <Navigate to={`/${currentUser.role.toLowerCase()}/dashboard`} replace />
+              : <Register />
           }
         />
 

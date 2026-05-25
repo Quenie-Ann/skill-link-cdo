@@ -11,7 +11,6 @@ import { api } from '../../services/api';
 import { useTheme } from '../../context/ThemeContext';
 import NotificationBell from '../../components/common/NotificationBell';
 
-//  CONFIG — shared by both Workers and Residents
 const STATUS_CFG = {
   verified: { bg: 'bg-emerald-100 dark:bg-emerald-900/20', text: 'text-emerald-700 dark:text-emerald-400', dot: 'bg-emerald-500', label: 'Verified' },
   pending:  { bg: 'bg-amber-100 dark:bg-amber-900/20',     text: 'text-amber-700 dark:text-amber-400',     dot: 'bg-amber-500',   label: 'Pending'  },
@@ -19,11 +18,9 @@ const STATUS_CFG = {
   rejected: { bg: 'bg-red-100 dark:bg-red-900/20',         text: 'text-red-700 dark:text-red-400',         dot: 'bg-red-500',     label: 'Rejected' },
 };
 
-
 const TAB_FILTERS = ['All', 'Pending', 'Verified', 'Flagged', 'Rejected'];
 const PAGE_SIZE   = 10;
 
-// Shared status resolver — works for both workers and residents
 function getUserStatus(u) {
   if (u.verification_status === 'flagged')  return 'flagged';
   if (u.verification_status === 'rejected') return 'rejected';
@@ -31,14 +28,6 @@ function getUserStatus(u) {
   return 'pending';
 }
 
-// Resident document types — admin reviews whichever one was submitted (either/or)
-const RESIDENT_DOCS = [
-  { key: 'government_id',      label: 'Government-Issued ID'  },
-  { key: 'proof_of_residence', label: 'Proof of Residence'    },
-];
-
-
-//  PAGINATION
 function Pagination({ current, total, onChange }) {
   if (total <= 1) return null;
   return (
@@ -74,26 +63,16 @@ function Pagination({ current, total, onChange }) {
   );
 }
 
-
-//  MAIN COMPONENT
 export default function UserVerification() {
   const { isDarkMode, toggleDarkMode } = useTheme();
-
-  // User type switcher 
-  const [userType, setUserType] = useState('workers'); // 'workers' | 'residents'
-
-  // Data 
+  const [userType, setUserType] = useState('workers');
   const [workers,   setWorkers]   = useState([]);
   const [residents, setResidents] = useState([]);
   const [loading,   setLoading]   = useState(true);
   const [error,     setError]     = useState(null);
-
-  // Filters 
   const [searchTerm, setSearchTerm] = useState('');
   const [activeTab,  setActiveTab]  = useState('All');
   const [page,       setPage]       = useState(1);
-
-  // Modal 
   const [selected,   setSelected]   = useState(null);
   const [actionType, setActionType] = useState(null);
   const [reason,     setReason]     = useState('');
@@ -101,7 +80,6 @@ export default function UserVerification() {
   const [actError,   setActError]   = useState('');
 
   useEffect(() => { fetchAll(); }, []);
-  // Reset filters whenever the user switches between Workers and Residents
   useEffect(() => { setPage(1); setActiveTab('All'); setSearchTerm(''); }, [userType]);
   useEffect(() => { setPage(1); }, [searchTerm, activeTab]);
 
@@ -119,23 +97,23 @@ export default function UserVerification() {
         skills:           worker.skill_category_name ? [worker.skill_category_name] : [],
         rating:           parseFloat(worker.avg_rating) || 0,
         hourly_rate:      worker.declared_rate       ?? null,
-        daily_rate:       worker.declared_rate       ?? null,  // ← modal reads daily_rate
-        experience_years: worker.years_experience    ?? 0,     // ← modal reads experience_years
+        daily_rate:       worker.declared_rate       ?? null,
+        experience_years: worker.years_experience    ?? 0,
         phone:            worker.contact_number      ?? '—',
+        documents:        worker.documents           || [],
       })));
       setResidents((r || []).map((resident) => ({
         ...resident,
-        location: resident.address       ?? '—',
-        phone:    resident.contact_number ?? '—',
+        location:  resident.address        ?? '—',
+        phone:     resident.contact_number ?? '—',
+        documents: resident.documents      || [],
       })));
     } catch (err) { setError(err.message); }
     finally { setLoading(false); }
   }
 
-  // Active list driven by current tab
   const activeList = userType === 'workers' ? workers : residents;
 
-  // Counts for summary cards and tab badges
   const counts = {
     all:      activeList.length,
     pending:  activeList.filter((u) => getUserStatus(u) === 'pending').length,
@@ -158,7 +136,6 @@ export default function UserVerification() {
   const start      = (page - 1) * PAGE_SIZE;
   const paginated  = filtered.slice(start, start + PAGE_SIZE);
 
-  // Actions — route to the correct api call based on userType 
   async function handleApprove(u) {
     setActLoading(true); setActError('');
     try {
@@ -212,8 +189,6 @@ export default function UserVerification() {
 
   return (
     <div className="min-h-screen bg-skill-light dark:bg-dark-bg transition-colors duration-300">
-
-      {/* HEADER */}
       <header className="sticky top-0 z-30 bg-white dark:bg-dark-card border-b border-skill-primary/10 dark:border-white/5 shadow-sm px-8 py-4">
         <div className="flex justify-between items-center max-w-[1600px] mx-auto">
           <div>
@@ -243,24 +218,18 @@ export default function UserVerification() {
       </header>
 
       <main className="p-8 max-w-[1600px] mx-auto">
-
         {error && (
           <div role="alert" className="mb-5 p-4 bg-red-50 dark:bg-red-900/20 border border-red-200 dark:border-red-800 rounded-lg text-red-600 dark:text-red-400 text-sm flex items-center gap-2">
             <AlertCircle size={14} aria-hidden="true" /> {error}
           </div>
         )}
 
-        {/* User Type Switcher */}
         <div className="flex items-center gap-2 mb-6">
           {[
             { key: 'workers',   label: 'Workers',  icon: UserCheck, count: workers.length   },
             { key: 'residents', label: 'Residents', icon: Home,      count: residents.length },
           ].map(({ key, label, icon: Icon, count }) => (
-            <button
-              key={key}
-              type="button"
-              onClick={() => setUserType(key)}
-              aria-pressed={userType === key}
+            <button key={key} type="button" onClick={() => setUserType(key)} aria-pressed={userType === key}
               className={`flex items-center gap-2.5 px-5 py-2.5 rounded-xl text-sm font-bold transition-all border ${
                 userType === key
                   ? 'bg-skill-primary text-white border-skill-primary shadow-lg shadow-skill-primary/20'
@@ -270,17 +239,14 @@ export default function UserVerification() {
               {label}
               <span className={`text-[10px] px-1.5 py-0.5 rounded-full font-black ${
                 userType === key ? 'bg-white/20 text-white' : 'bg-skill-light dark:bg-dark-bg text-gray-400'
-              }`}>
-                {count}
-              </span>
+              }`}>{count}</span>
             </button>
           ))}
         </div>
 
-        {/* Summary Cards */}
         <div className="grid grid-cols-2 md:grid-cols-4 gap-4 mb-6">
           {[
-            { label: `Total ${userType === 'workers' ? 'Workers' : 'Residents'}`, count: counts.all,      icon: userType === 'workers' ? UserCheck : Home, isGradient: true },
+            { label: `Total ${userType === 'workers' ? 'Workers' : 'Residents'}`, count: counts.all, icon: userType === 'workers' ? UserCheck : Home, isGradient: true },
             { label: 'Pending',  count: counts.pending,  icon: AlertCircle, cls: 'text-amber-600 dark:text-amber-400'    },
             { label: 'Verified', count: counts.verified, icon: BadgeCheck,  cls: 'text-emerald-600 dark:text-emerald-400' },
             { label: 'Flagged',  count: counts.flagged,  icon: AlertCircle, cls: 'text-orange-600 dark:text-orange-400'   },
@@ -299,12 +265,10 @@ export default function UserVerification() {
           ))}
         </div>
 
-        {/* Status Filter Tabs */}
         <div className="flex items-center gap-2 mb-4 overflow-x-auto pb-1">
           <SlidersHorizontal size={14} className="text-skill-primary flex-shrink-0" aria-hidden="true" />
           {TAB_FILTERS.map((tab) => (
-            <button key={tab} type="button" onClick={() => setActiveTab(tab)}
-              aria-pressed={activeTab === tab}
+            <button key={tab} type="button" onClick={() => setActiveTab(tab)} aria-pressed={activeTab === tab}
               className={`flex items-center gap-2 px-4 py-1.5 rounded-lg text-sm font-bold whitespace-nowrap transition-all flex-shrink-0 ${
                 activeTab === tab
                   ? 'bg-skill-primary text-white shadow-sm'
@@ -313,9 +277,7 @@ export default function UserVerification() {
               {tab}
               <span className={`text-[10px] px-1.5 py-0.5 rounded-full font-black ${
                 activeTab === tab ? 'bg-white/20 text-white' : 'bg-skill-light dark:bg-dark-bg text-gray-400'
-              }`}>
-                {counts[tab.toLowerCase()] ?? counts.all}
-              </span>
+              }`}>{counts[tab.toLowerCase()] ?? counts.all}</span>
             </button>
           ))}
           <span className="ml-auto text-xs text-gray-400 font-bold flex-shrink-0">
@@ -323,10 +285,8 @@ export default function UserVerification() {
           </span>
         </div>
 
-        {/* TABLE */}
         <section aria-label={`${userType === 'workers' ? 'Workers' : 'Residents'} list`}
           className="bg-white dark:bg-dark-card rounded-xl border border-skill-primary/5 dark:border-white/5 shadow-sm overflow-hidden">
-
           {loading ? (
             <div className="flex justify-center py-20">
               <div className="animate-spin rounded-full h-8 w-8 border-2 border-skill-primary border-t-transparent" aria-label="Loading" />
@@ -339,9 +299,7 @@ export default function UserVerification() {
               }
               <p className="text-sm text-gray-400 font-medium">No {userType} match your search.</p>
               <button type="button" onClick={() => { setSearchTerm(''); setActiveTab('All'); }}
-                className="mt-3 text-skill-primary text-sm font-bold hover:underline">
-                Clear filters
-              </button>
+                className="mt-3 text-skill-primary text-sm font-bold hover:underline">Clear filters</button>
             </div>
           ) : (
             <>
@@ -378,12 +336,7 @@ export default function UserVerification() {
                       const cfg    = STATUS_CFG[status];
                       return (
                         <tr key={u.id} className="hover:bg-skill-light/30 dark:hover:bg-dark-bg/30 transition-colors">
-
-                          <td className="px-5 py-4 text-[11px] text-gray-300 dark:text-gray-600 font-bold tabular-nums">
-                            {start + i + 1}
-                          </td>
-
-                          {/* Name row */}
+                          <td className="px-5 py-4 text-[11px] text-gray-300 dark:text-gray-600 font-bold tabular-nums">{start + i + 1}</td>
                           <td className="px-4 py-4">
                             <div className="flex items-center gap-3">
                               <div className="w-8 h-8 rounded-lg bg-skill-light dark:bg-dark-bg flex items-center justify-center flex-shrink-0">
@@ -398,13 +351,9 @@ export default function UserVerification() {
                               </div>
                             </div>
                           </td>
-
-                          {/* Worker-only columns */}
                           {userType === 'workers' ? (
                             <>
-                              <td className="px-4 py-4">
-                                <span className="text-xs font-medium text-skill-dark dark:text-gray-300">{u.service || '—'}</span>
-                              </td>
+                              <td className="px-4 py-4"><span className="text-xs font-medium text-skill-dark dark:text-gray-300">{u.service || '—'}</span></td>
                               <td className="px-4 py-4 hidden md:table-cell">
                                 <span className="text-xs text-gray-500 dark:text-gray-400 flex items-center gap-1">
                                   <MapPin size={9} aria-hidden="true" /> {u.location || '—'}
@@ -425,9 +374,7 @@ export default function UserVerification() {
                                   <span className="inline-flex items-center gap-1 text-xs font-bold text-skill-dark dark:text-white">
                                     {u.rating} <Star size={10} className="text-amber-400 fill-amber-400" aria-hidden="true" />
                                   </span>
-                                ) : (
-                                  <span className="text-xs text-gray-300 dark:text-gray-600">—</span>
-                                )}
+                                ) : <span className="text-xs text-gray-300 dark:text-gray-600">—</span>}
                               </td>
                               <td className="px-4 py-4 text-center hidden lg:table-cell">
                                 <span className="text-xs font-medium text-skill-dark dark:text-gray-300">
@@ -436,7 +383,6 @@ export default function UserVerification() {
                               </td>
                             </>
                           ) : (
-                            /* Resident-only columns */
                             <>
                               <td className="px-4 py-4 hidden md:table-cell">
                                 <span className="text-xs text-gray-500 dark:text-gray-400 flex items-center gap-1">
@@ -450,24 +396,21 @@ export default function UserVerification() {
                               </td>
                               <td className="px-4 py-4 hidden lg:table-cell">
                                 <span className="text-[10px] px-2.5 py-1 bg-skill-light dark:bg-dark-bg text-skill-dark dark:text-gray-300 rounded font-semibold">
-                                  {u.doc_type === 'proof_of_residence' ? 'Proof of Residence' : 'Government-Issued ID'}
+                                  {u.documents && u.documents.length > 0
+                                    ? (u.documents[0].doc_type === 'proof_of_residence' ? 'Proof of Residence' : 'Government-Issued ID')
+                                    : 'No document'}
                                 </span>
                               </td>
                             </>
                           )}
-
-                          {/* Status badge — shared */}
                           <td className="px-4 py-4 text-center">
                             <span className={`inline-flex items-center gap-1.5 px-2.5 py-1 rounded-full text-[9px] font-black uppercase tracking-widest ${cfg.bg} ${cfg.text}`}>
                               <span className={`w-1.5 h-1.5 rounded-full ${cfg.dot}`} aria-hidden="true" />
                               {cfg.label}
                             </span>
                           </td>
-
-                          {/* Action — shared */}
                           <td className="px-5 py-4 text-center">
-                            <button type="button" onClick={() => openUser(u)}
-                              aria-label={`Review ${u.full_name}`}
+                            <button type="button" onClick={() => openUser(u)} aria-label={`Review ${u.full_name}`}
                               className="inline-flex items-center gap-1.5 px-3 py-1.5 bg-skill-light dark:bg-dark-bg text-skill-primary border border-skill-primary/20 hover:bg-skill-primary hover:text-white rounded-lg text-xs font-bold transition-all">
                               <Eye size={11} aria-hidden="true" /> Review
                             </button>
@@ -478,9 +421,7 @@ export default function UserVerification() {
                   </tbody>
                 </table>
               </div>
-
               <Pagination current={page} total={totalPages} onChange={setPage} />
-
               <p className="text-center text-xs text-gray-400 pb-3">
                 Showing {start + 1}–{Math.min(start + PAGE_SIZE, filtered.length)} of {filtered.length} {userType}
               </p>
@@ -489,7 +430,6 @@ export default function UserVerification() {
         </section>
       </main>
 
-      {/* DETAIL MODAL */}
       {selected && (
         <div role="dialog" aria-modal="true" aria-labelledby="umodal-title"
           className="fixed inset-0 z-50 flex items-center justify-center p-4 bg-skill-dark/60 backdrop-blur-sm"
@@ -497,7 +437,6 @@ export default function UserVerification() {
           <div className="bg-white dark:bg-dark-card rounded-lg w-full max-w-lg shadow-2xl max-h-[90vh] flex flex-col overflow-hidden"
             onClick={(e) => e.stopPropagation()}>
 
-            {/* Gradient Header */}
             <div className="bg-gradient-to-br from-skill-dark to-[#064e3b] p-7 text-white relative overflow-hidden flex-shrink-0">
               <div className="relative z-10">
                 <div className="flex items-start justify-between mb-4">
@@ -533,10 +472,8 @@ export default function UserVerification() {
               <div className="absolute -right-4 -bottom-4 w-24 h-24 bg-skill-primary/10 rounded-full blur-2xl" aria-hidden="true" />
             </div>
 
-            {/* Scrollable Body */}
             <div className="overflow-y-auto flex-1 p-6 space-y-5">
 
-              {/* WORKER modal body */}
               {userType === 'workers' && (
                 <>
                   <dl className="grid grid-cols-2 gap-3">
@@ -554,7 +491,6 @@ export default function UserVerification() {
                       </div>
                     ))}
                   </dl>
-
                   <div>
                     <p className="text-[10px] font-bold text-gray-400 uppercase tracking-widest mb-2">Skills</p>
                     <div className="flex flex-wrap gap-2">
@@ -566,29 +502,36 @@ export default function UserVerification() {
                       }
                     </div>
                   </div>
-
                   <div>
                     <p className="text-[10px] font-bold text-gray-400 uppercase tracking-widest mb-2 flex items-center gap-1">
                       <FileText size={9} aria-hidden="true" /> Documents
                     </p>
                     <div className="space-y-2">
-                      {['Government-Issued ID', 'Barangay Clearance'].map((doc) => (
-                        <div key={doc} className="flex items-center justify-between px-4 py-3 bg-skill-light dark:bg-dark-bg rounded-lg">
-                          <div className="flex items-center gap-2">
-                            <FileText size={12} className="text-skill-primary" aria-hidden="true" />
-                            <span className="text-xs font-semibold text-skill-dark dark:text-white">{doc}</span>
+                      {selected.documents && selected.documents.length > 0 ? (
+                        selected.documents.map((doc) => (
+                          <div key={doc.id} className="flex items-center justify-between px-4 py-3 bg-skill-light dark:bg-dark-bg rounded-lg">
+                            <div className="flex items-center gap-2">
+                              <FileText size={12} className="text-skill-primary" aria-hidden="true" />
+                              <span className="text-xs font-semibold text-skill-dark dark:text-white">
+                                {doc.doc_type === 'certification' ? 'Certification' :
+                                 doc.doc_type === 'barangay_clearance' ? 'Barangay Clearance' :
+                                 doc.doc_type === 'government_id' ? 'Government-Issued ID' : doc.doc_type}
+                              </span>
+                            </div>
+                            <a href={`http://127.0.0.1:8000${doc.file}`} target="_blank" rel="noopener noreferrer"
+                              className="text-[10px] font-bold text-skill-primary hover:text-emerald-600 flex items-center gap-1 transition-colors">
+                              <Eye size={10} aria-hidden="true" /> View
+                            </a>
                           </div>
-                          <button type="button" className="text-[10px] font-bold text-skill-primary hover:text-emerald-600 flex items-center gap-1 transition-colors">
-                            <Eye size={10} aria-hidden="true" /> View
-                          </button>
-                        </div>
-                      ))}
+                        ))
+                      ) : (
+                        <p className="text-xs text-gray-400 italic px-4 py-3">No documents uploaded.</p>
+                      )}
                     </div>
                   </div>
                 </>
               )}
 
-              {/* RESIDENT modal body */}
               {userType === 'residents' && (
                 <>
                   <dl className="grid grid-cols-2 gap-3">
@@ -604,8 +547,6 @@ export default function UserVerification() {
                       </div>
                     ))}
                   </dl>
-
-                  {/* Resident submits EITHER Gov ID OR Proof of Residence — not both */}
                   <div>
                     <p className="text-[10px] font-bold text-gray-400 uppercase tracking-widest mb-1 flex items-center gap-1">
                       <FileText size={9} aria-hidden="true" /> Identity Documents
@@ -614,46 +555,36 @@ export default function UserVerification() {
                       Resident submits either a Government-Issued ID or Proof of Residence.
                     </p>
                     <div className="space-y-2">
-                      {RESIDENT_DOCS.map(({ key, label }) => {
-                        // Use doc_type field if present; default to government_id for mock data
-                        const isSubmitted = selected.doc_type
-                          ? selected.doc_type === key
-                          : key === 'government_id';
-                        return (
-                          <div key={key} className={`flex items-center justify-between px-4 py-3 rounded-lg ${
-                            isSubmitted
-                              ? 'bg-skill-light dark:bg-dark-bg'
-                              : 'bg-gray-50 dark:bg-dark-bg/40 opacity-50'
-                          }`}>
+                      {selected.documents && selected.documents.length > 0 ? (
+                        selected.documents.map((doc) => (
+                          <div key={doc.id} className="flex items-center justify-between px-4 py-3 bg-skill-light dark:bg-dark-bg rounded-lg">
                             <div className="flex items-center gap-2">
-                              <FileText size={12} className={isSubmitted ? 'text-skill-primary' : 'text-gray-300'} aria-hidden="true" />
-                              <span className="text-xs font-semibold text-skill-dark dark:text-white">{label}</span>
-                              {isSubmitted && (
-                                <span className="text-[9px] bg-emerald-100 dark:bg-emerald-900/20 text-emerald-700 dark:text-emerald-400 px-2 py-0.5 rounded-full font-black uppercase tracking-widest">
-                                  Submitted
-                                </span>
-                              )}
+                              <FileText size={12} className="text-skill-primary" aria-hidden="true" />
+                              <span className="text-xs font-semibold text-skill-dark dark:text-white">
+                                {doc.doc_type === 'government_id' ? 'Government-Issued ID' : 'Proof of Residence'}
+                              </span>
+                              <span className="text-[9px] bg-emerald-100 dark:bg-emerald-900/20 text-emerald-700 dark:text-emerald-400 px-2 py-0.5 rounded-full font-black uppercase tracking-widest">
+                                Submitted
+                              </span>
                             </div>
-                            {isSubmitted ? (
-                              <button type="button" className="text-[10px] font-bold text-skill-primary hover:text-emerald-600 flex items-center gap-1 transition-colors">
-                                <Eye size={10} aria-hidden="true" /> View
-                              </button>
-                            ) : (
-                              <span className="text-[10px] text-gray-300 italic">Not provided</span>
-                            )}
+                            <a href={`http://127.0.0.1:8000${doc.file}`} target="_blank" rel="noopener noreferrer"
+                              className="text-[10px] font-bold text-skill-primary hover:text-emerald-600 flex items-center gap-1 transition-colors">
+                              <Eye size={10} aria-hidden="true" /> View
+                            </a>
                           </div>
-                        );
-                      })}
+                        ))
+                      ) : (
+                        <p className="text-xs text-gray-400 italic px-4 py-3">No documents uploaded.</p>
+                      )}
                     </div>
                   </div>
                 </>
               )}
 
-              {/* Shared: reason textarea for reject/revoke actions */}
               {(actionType === 'reject' || actionType === 'revoke') && (
                 <div>
                   <label htmlFor="modal-reason" className="block text-[10px] font-bold text-red-500 uppercase tracking-widest mb-2">
-                    Reason <span aria-hidden="true">*</span><span className="sr-only">(required)</span>
+                    Reason <span aria-hidden="true">*</span>
                   </label>
                   <textarea id="modal-reason" rows={3} value={reason}
                     onChange={(e) => setReason(e.target.value)}
@@ -676,9 +607,7 @@ export default function UserVerification() {
               )}
             </div>
 
-            {/* Footer Actions — shared logic for both user types */}
             <div className="p-5 border-t border-gray-100 dark:border-white/5 flex-shrink-0">
-
               {getUserStatus(selected) === 'pending' && (
                 actionType !== 'reject' ? (
                   <div className="flex gap-3">
@@ -725,7 +654,6 @@ export default function UserVerification() {
                 )
               )}
 
-              {/* Flagged or Rejected — allow re-verification */}
               {(getUserStatus(selected) === 'flagged' || getUserStatus(selected) === 'rejected') && (
                 <div className="flex gap-3">
                   <button type="button" onClick={closeModal}
