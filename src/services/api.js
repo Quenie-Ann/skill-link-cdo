@@ -12,8 +12,10 @@ import {
 const USE_MOCK = false;
 
 // Using Django server with CORS enabled, so frontend can be on different port during development.
-const BASE_URL = 'http://127.0.0.1:8000/api';
-
+const BASE_URL = import.meta.env.VITE_API_URL || 'http://127.0.0.1:8000/api';
+//temporary logging to debug 
+console.log('API BASE_URL:', BASE_URL);
+console.log('ENV VAR:', import.meta.env.VITE_API_URL);
 //  Internal HTTP helper — used only when USE_MOCK = false
 //async function request(method, path, body = null) {
 
@@ -260,14 +262,10 @@ export const api = {
     ? mock([])
     : request('GET', '/skill-categories/'),
 
-  getJobTypes: async (categoryId) => {
-     const res = await fetch(
-       `${BASE_URL}/skill-categories/${categoryId}/job-types/`,
-       { headers: authHeaders() }
-     );
-     if (!res.ok) throw new Error('Failed to load job types.');
-     return res.json();
-   },
+  getJobTypes: (categoryId) =>
+  USE_MOCK
+    ? mock([])
+    : request('GET', `/skill-categories/${categoryId}/job-types/`),
 
   // Send a job offer to a specific worker for a specific request
   sendOffer: (requestId, workerId, matchScore = null) =>

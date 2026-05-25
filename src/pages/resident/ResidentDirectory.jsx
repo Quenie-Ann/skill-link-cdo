@@ -12,7 +12,7 @@ import {
   Info, AlertTriangle,
 } from 'lucide-react';
 import { api } from '../../services/api';
-import { SERVICE_CONFIG, SERVICE_FILTERS } from '../../data/mockData';
+import { SERVICE_CONFIG } from '../../data/mockData';
 
 
 // Skeleton card — shown during loading to prevent content flash (Bug 3 fix)
@@ -164,13 +164,28 @@ export default function ResidentDirectory() {
   const location = useLocation();
   const navigate = useNavigate();
 
-  const matchRequest    = location.state?.matchRequest    ?? null;
-  const mlRankedWorkers = location.state?.mlRankedWorkers ?? [];
-  const dataQuality     = location.state?.dataQuality     ?? null;
+  // Restore match state from sessionStorage when the resident navigates back.
+  // location.state is only available on the initial navigate() call.
+  // Subsequent visits within the same session fall back to sessionStorage.
+  const _savedState = (() => {
+    if (location.state?.matchRequest) return location.state;
+    try {
+      const raw = sessionStorage.getItem('skilllink_match_state');
+      return raw ? JSON.parse(raw) : null;
+    } catch (_) { return null; }
+  })();
+
+  const matchRequest    = _savedState?.matchRequest    ?? null;
+  const mlRankedWorkers = _savedState?.mlRankedWorkers ?? [];
+  const dataQuality     = _savedState?.dataQuality     ?? null;
 
   const [workers,        setWorkers]        = useState(null);
   const [searchTerm,     setSearchTerm]     = useState('');
-  const [activeFilter,   setActiveFilter]   = useState('All');
+  // Initialize to the actual DB category name from the match results.
+  // _savedState.matchRequest.service_category is a mockData .value (e.g. "Plumbing").
+  // The pill filter compares against w.service = skill_category_name from the DB.
+  // We therefore initialize to 'All' and let the dynamic pill list handle display.
+  const [activeFilter, setActiveFilter] = useState('All');
   const [selectedWorker, setSelectedWorker] = useState(null);
   const [offeredIds,     setOfferedIds]     = useState([]);
   const [ratingTarget,   setRatingTarget]   = useState(null);
@@ -179,10 +194,9 @@ export default function ResidentDirectory() {
   // Build the workers list directly from the ML response in location.state.
   // The job request POST already returned matched_workers[] — no second API call needed.
   useEffect(() => {
-    const matchedWorkers = location.state?.matchedWorkers ?? [];
+    const matchedWorkers = _savedState?.matchedWorkers ?? [];
 
     if (matchedWorkers.length === 0) {
-      // No ML results passed — show empty state immediately, no fetch
       setWorkers([]);
       return;
     }
@@ -228,19 +242,29 @@ export default function ResidentDirectory() {
       });
     }, [workers, mlRankedWorkers]);
 
+  // Build a unique list of category names present in the current results.
+  // Used to render dynamic filter pills that always reflect the actual data.
+  const availableCategories = useMemo(() => {
+    const names = new Set(
+      (workers || []).map((w) => w.service).filter((s) => s && s !== '—')
+    );
+    return ['All', ...Array.from(names).sort()];
+  }, [workers]);
+
   const filtered = useMemo(() => workersWithScores.filter((w) => {
-    const matchCategory = matchRequest
-      ? w.service?.toLowerCase() === matchRequest.service_category?.toLowerCase()
-      : true;
+    // matchCategory is removed — the backend already pre-filters by category.
+    // All workers in the list belong to the selected category by definition.
     const matchSearch =
       w.full_name?.toLowerCase().includes(searchTerm.toLowerCase()) ||
       w.service?.toLowerCase().includes(searchTerm.toLowerCase()) ||
       (w.skills || []).some((s) => s.toLowerCase().includes(searchTerm.toLowerCase())) ||
       w.location?.toLowerCase().includes(searchTerm.toLowerCase());
 
+    // matchFilter compares w.service (DB skill_category_name) against activeFilter
+    // which is also drawn from w.service values — same source, exact match guaranteed.
     const matchFilter = activeFilter === 'All' || w.service === activeFilter;
-    return matchCategory && matchSearch && matchFilter;
-  }), [workersWithScores, matchRequest, searchTerm, activeFilter]);
+    return matchSearch && matchFilter;
+  }), [workersWithScores, searchTerm, activeFilter]);
 
   async function handleSendOffer(worker) {
     if (!matchRequest?.id) {
@@ -353,20 +377,30 @@ export default function ResidentDirectory() {
         {/* Data quality notice — only shown when data is limited */}
         <DataQualityBanner dataQuality={dataQuality} />
 
-        {/* Filter Pills */}
+        {/* Filter Pills — built dynamically from actual worker data in the list.
+             SERVICE_FILTERS (static mockData) is intentionally not used here
+             because its labels (e.g. "Plumbing") may not match the DB category
+             names (e.g. "Plumber") that workers are stored under. */}
         <div className="flex items-center gap-2 mb-8 overflow-x-auto pb-2">
           <SlidersHorizontal size={16} className="text-skill-primary flex-shrink-0" />
-          {SERVICE_FILTERS.map((f) => {
+          {availableCategories.map((f) => {
+            // SERVICE_CONFIG keys are static mockData labels — use as a best-effort
+            // style lookup only. Falls back to neutral styling when no match exists.
             const cfg  = SERVICE_CONFIG[f];
             const Icon = cfg?.icon;
+            const isActive = activeFilter === f;
             return (
               <button
                 key={f}
                 onClick={() => setActiveFilter(f)}
-                className={`flex items-center gap-2 px-5 py-2.5 rounded-lg text-sm font-bold whitespace-nowrap transition-all flex-shrink-0 ${
-                  activeFilter === f
-                    ? 'bg-skill-primary text-white shadow-lg shadow-skill-primary/20'
-                    : 'bg-white dark:bg-dark-card text-gray-500 dark:text-gray-400 hover:border-skill-primary border border-transparent'
+                className={`flex items-center gap-2 px-5 py-2.5 rounded-lg text-sm font-bold whitespace-nowrap transition-all flex-shrink-0 border ${
+                  isActive
+                    ? f === 'All'
+                      ? 'bg-skill-primary text-white shadow-lg shadow-skill-primary/20 border-transparent'
+                      : cfg
+                        ? `${cfg.bg} ${cfg.color} shadow-md border-current`
+                        : 'bg-skill-primary text-white shadow-md border-transparent'
+                    : 'bg-white dark:bg-dark-card text-gray-500 dark:text-gray-400 hover:border-skill-primary border-transparent'
                 }`}
               >
                 {Icon && <Icon size={14} />} {f}

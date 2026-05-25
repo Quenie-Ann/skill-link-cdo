@@ -18,15 +18,33 @@ import {
 import { api } from '../../services/api';
 
 // ---------------------------------------------------------------------------
-// Bug 1 fix: BUDGET_RANGES simplified to 4 clearly distinct options.
-// The original had too many overlapping ranges that looked the same visually.
-// These four cover the realistic range for barangay-level skilled work.
+// Budget ranges based on DOLE Wage Order No. RX-24 (Wage Category I —
+// Cagayan de Oro City, effective January 16, 2026).
+// Current minimum daily wage: ₱500/day (8 hrs) → ₱62.50/hr.
+// All ranges reflect labor cost only for residential, single-worker jobs
+// up to 12 hours. Materials are settled separately by the two parties.
 // ---------------------------------------------------------------------------
 const SIMPLE_BUDGET_OPTIONS = [
-  { value: '0-500',    label: 'Under ₱500',    desc: 'Minor repairs'     },
-  { value: '500-1500', label: '₱500 – ₱1,500', desc: 'Standard jobs'     },
-  { value: '1500-3000',label: '₱1,500 – ₱3,000',desc: 'Complex work'    },
-  { value: '3000-9999',label: '₱3,000+',        desc: 'Major projects'   },
+  {
+    value: '150-300',
+    label: '₱150 – ₱300',
+    desc:  'Quick fix · 1–2 hrs (e.g. tighten fittings, replace switch)',
+  },
+  {
+    value: '300-500',
+    label: '₱300 – ₱500',
+    desc:  'Half-day · 3–5 hrs (e.g. unclog drain, patch wall, re-grout)',
+  },
+  {
+    value: '500-800',
+    label: '₱500 – ₱800',
+    desc:  'Full day · 6–8 hrs (e.g. repipe section, rewire room)',
+  },
+  {
+    value: '800-1200',
+    label: '₱800 – ₱1,200',
+    desc:  'Extended · up to 12 hrs (e.g. roof repair, full room carpentry)',
+  },
 ];
 
 // ---------------------------------------------------------------------------
@@ -142,14 +160,13 @@ function parseBudget(value) {
 // Main Component
 // ---------------------------------------------------------------------------
 export default function ResidentDashboard() {
-  const [coords, setCoords] = useState({ lat: null, lng: null });
   const navigate = useNavigate();
   const { isDarkMode, toggleDarkMode } = useTheme();
 
   const [requests,      setRequests]      = useState([]);
   const [modalOpen,     setModalOpen]     = useState(false);
   const [step,          setStep]          = useState(1);
-  const [form,          setForm]          = useState({ service_category: '', specific_problem: '', budget_range: '', notes: '', location: '' });
+  const [form,          setForm]          = useState({ service_category: '', specific_problem: '', budget_range: '', notes: '', location: '', location_lat: null, location_lng: null });
   const [submitting,    setSubmitting]    = useState(false);
   const [formError,     setFormError]     = useState('');
   const [ratingTarget,  setRatingTarget]  = useState(null);
@@ -257,17 +274,45 @@ export default function ResidentDashboard() {
   const selectedCategory = SERVICE_CATEGORIES.find((c) => c.value === form.service_category);
 
   function openModal()  { setStep(1); setFormError(''); setJobTypes([]); setModalOpen(true); }
-  function closeModal() { setModalOpen(false); setStep(1); setFormError(''); setJobTypes([]); }
+  function closeModal() { setModalOpen(false); setStep(1); setFormError(''); setJobTypes([]);
+    setForm({ service_category: '', specific_problem: '', budget_range: '', notes: '', location: '', location_lat: null, location_lng: null });
+  }
 
   function useCurrentLocation() {
-    if (!navigator.geolocation) return;
-    setLocating(true);  // locating state already exists in your component
+    if (!navigator.geolocation) {
+      alert('Geolocation is not supported by your browser.');
+      return;
+    }
+    setLocating(true);
     navigator.geolocation.getCurrentPosition(
       (pos) => {
-        setCoords({ lat: pos.coords.latitude, lng: pos.coords.longitude });
+        // Round to 7dp — raw browser coords (e.g. 8.454216000000001) exceed
+        // DecimalField(max_digits=10, decimal_places=7) and cause a Django 400.
+        const lat = parseFloat(pos.coords.latitude.toFixed(7));
+        const lng = parseFloat(pos.coords.longitude.toFixed(7));
+        setCoords({ lat, lng });
+        setForm((prev) => ({
+          ...prev,
+          location: `${lat.toFixed(6)}, ${lng.toFixed(6)}`,
+          location_lat: lat,
+          location_lng: lng,
+        }));
         setLocating(false);
       },
-      () => setLocating(false)
+      (err) => {
+        console.error('Geolocation error:', err);
+        alert('Could not get your location. Please check browser permissions and try again.');
+        setLocating(false);
+      },
+      {
+        // FE-015: enableHighAccuracy: true forces GPS hardware — times out on
+        // desktops and indoor devices (GeolocationPositionError code 3).
+        // WiFi/IP triangulation (false) resolves in <1s and is precise enough
+        // for barangay-level proximity scoring (accuracy within ~50–200m).
+        enableHighAccuracy: false,
+        timeout: 15000,
+        maximumAge: 60000,
+      }
     );
   }
 
@@ -314,8 +359,8 @@ export default function ResidentDashboard() {
         title:            form.specific_problem,
         description:      description,
         location_address: form.location,
-        location_lat: coords.lat,
-        location_lng: coords.lng,
+        location_lat: form.location_lat,
+        location_lng: form.location_lng,
         budget_min:       budget_min,
         budget_max:       budget_max,
       };
