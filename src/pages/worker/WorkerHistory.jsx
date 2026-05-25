@@ -46,25 +46,41 @@ export default function WorkerHistory() {
   useEffect(() => {
     const fetchHistory = async () => {
       try {
-        const data = await api.getJobHistory();
+        // Also fetch the worker's own profile to get declared_rate
+        const [data, profile] = await Promise.all([
+          api.getJobHistory(),
+          api.getProfile(),
+        ]);
 
-        // Normalize JobOffer API shape → what the component expects
-        const normalized = (data || []).map((offer) => ({
-          id:       offer.id,
-          title:    offer.request_title    ?? 'Job Request',
-          service:  offer.category_name   ?? '—',
-          location: offer.request_location ?? '—',
-          resident: offer.resident_name   ?? '—',
-          date:     offer.created_at,
-          pay:      null,
-          rating:   null,
-          // Normalize status: offer 'accepted' + request 'completed' = completed job
-          status: offer.request.status === 'completed'
+        const workerDeclaredRate = parseFloat(profile?.declared_rate ?? 0);
+
+        const normalized = (data || []).map((offer) => {
+
+          // Determine job status
+          const jobStatus = offer.request_status === 'completed'
             ? 'completed'
             : offer.status === 'accepted'
             ? 'in_progress'
-            : 'cancelled',
-        }));
+            : 'cancelled';
+
+          // Pay = worker's declared rate for completed jobs
+          // null for in_progress (not yet paid) and cancelled
+          const pay = jobStatus === 'completed'
+            ? workerDeclaredRate
+            : null;
+
+          return {
+            id:       offer.id,
+            title:    offer.request_title    ?? 'Job Request',
+            service:  offer.category_name   ?? '—',
+            location: offer.request_location ?? '—',
+            resident: offer.resident_name   ?? '—',
+            date:     offer.created_at,
+            pay,
+            rating:   null,
+            status:   jobStatus,
+          };
+        });
 
         setHistory(normalized);
       } catch (err) {
@@ -254,23 +270,23 @@ export default function WorkerHistory() {
                     </div>
 
                     {/* Pay + Rating + Rate CTA */}
-                    <div className="flex items-center gap-4 flex-shrink-0">
-                      <div className="text-right">
-                        <p className="font-black text-skill-dark dark:text-white text-lg">
-                          {job.status === 'cancelled' ? '—' : `₱${job.pay}`}
+                    <div className="text-right">
+                      <p className="font-black text-skill-dark dark:text-white text-lg">
+                        {job.status === 'cancelled'
+                          ? '—'
+                          : job.pay !== null
+                          ? `₱${Number(job.pay).toLocaleString('en-PH')}`
+                          : <span className="text-sm text-gray-400 font-normal">Pending</span>
+                        }
+                      </p>
+                      {job.rating ? (
+                        <p className="flex items-center justify-end gap-1 text-[11px] text-gray-400 mt-0.5">
+                          {job.rating}
+                          <Star size={10} className="text-amber-400 fill-amber-400" />
                         </p>
-                        {job.rating ? (
-                          <p className="flex items-center justify-end gap-1 text-[11px] text-gray-400 mt-0.5">
-                            {job.rating}
-                            <Star size={10} className="text-amber-400 fill-amber-400" />
-                          </p>
-                        ) : job.status === 'completed' ? (
-                          /* Prompt to rate if resident hasn't rated yet — optional extension */
-                          <p className="text-[10px] text-gray-300 italic mt-0.5">Awaiting review</p>
-                        ) : null}
-                      </div>
-
-                      <ChevronRight size={16} className="text-gray-300 group-hover:text-skill-primary transition-colors" />
+                      ) : job.status === 'completed' ? (
+                        <p className="text-[10px] text-gray-300 italic mt-0.5">Awaiting review</p>
+                      ) : null}
                     </div>
                   </div>
                 );

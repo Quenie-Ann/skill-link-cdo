@@ -44,23 +44,59 @@ export default function WorkerDashboard() {
   const [completing,    setCompleting]    = useState(false);
   const [activeTab,     setActiveTab]     = useState('offers'); // 'offers' | 'inprogress'
 
-  // On mount: fetch incoming offer only — active job shown only after worker accepts
+  // On mount: fetch profile, incoming pending offer, AND active accepted job.
+  // activeJob was previously pure in-memory state (set only in handleAccept).
+  // Navigating away and returning reset it to null because useEffect never
+  // rehydrated it from the API. Now getActiveJob() is called on every mount
+  // so the In Progress tab correctly restores after navigation.
   useEffect(() => {
     async function fetchData() {
-      const [profile, incomingRaw] = await Promise.all([
+      const [profile, incomingRaw, activeRaw, stats] = await Promise.all([
         api.getProfile(),
         api.getIncomingJob(),
+        api.getActiveJob(),
+        api.getWorkerStats().catch(() => ({ total_completed: 0 })),
       ]);
+
       setWorker({
         ...profile,
         service:    profile.skill_category_name ?? 'Specialist',
         rating:     parseFloat(profile.avg_rating) || 0,
-        jobs_done:  0,
+        // FE-013: populated from WorkerStatsView (GET /api/worker/stats/)
+        // which counts offers where status='accepted' AND request status='completed'.
+        jobs_done:  stats?.total_completed ?? 0,
         daily_rate: profile.declared_rate ?? 0,
         phone:      profile.contact_number ?? '—',
       });
 
-      // Only set if API explicitly says has_offer: true
+      // Restore active job from API if one exists (offer status = accepted,
+      // request status = offer_accepted). This covers the navigation-away case.
+      if (activeRaw && activeRaw.id) {
+        setActiveJob({
+          id:              activeRaw.id,
+          problem:         activeRaw.request_title       ?? 'Job Request',
+          description:     activeRaw.request_description ?? '—',
+          service:         activeRaw.category_name       ?? '—',
+          distance:        '—',
+          accepted_at:     '—',
+          confirmed_date:  activeRaw.preferred_start_date
+                             ? new Date(activeRaw.preferred_start_date)
+                                 .toLocaleDateString('en-PH', { year: 'numeric', month: 'long', day: 'numeric' })
+                             : '—',
+          confirmed_price: `₱${profile.declared_rate ?? '—'}/day`,
+          resident: {
+            name:    activeRaw.resident_name    ?? '—',
+            phone:   '—',
+            address: activeRaw.request_location ?? '—',
+          },
+        });
+        // Auto-switch to In Progress tab so the worker sees the active job
+        setActiveTab('inprogress');
+      } else {
+        setActiveJob(null);
+      }
+
+      // Only set incoming if API explicitly says has_offer: true
       const incoming = incomingRaw?.has_offer ? incomingRaw.offer : null;
       if (incoming && incoming.id) {
         setIncomingJob({
@@ -315,10 +351,14 @@ export default function WorkerDashboard() {
                 </blockquote>
                 <dl className="space-y-3">
                   {[
-                    { icon: User,     iconBg: 'bg-blue-50 dark:bg-blue-900/20',     iconColor: 'text-blue-500',   label: 'Resident',           value: incomingJob?.resident?.name    },
-                    { icon: MapPin,   iconBg: 'bg-red-50 dark:bg-red-900/20',       iconColor: 'text-red-500',    label: 'Service Address',    value: incomingJob?.resident?.address },
-                    { icon: Clock,    iconBg: 'bg-purple-50 dark:bg-purple-900/20', iconColor: 'text-purple-500', label: 'Preferred Start',    value: incomingJob?.preferred_start?.replace(/_/g, ' ').replace(/\b\w/g, c => c.toUpperCase()) },
-                    { icon: Calendar, iconBg: 'bg-blue-50 dark:bg-blue-900/20',     iconColor: 'text-blue-400',   label: 'Preferred Schedule', value: incomingJob?.schedule          },
+                    // FE-012: Only fields actually returned by JobOfferSerializer are listed here.
+                    // 'Preferred Start' and 'Preferred Schedule' removed — JobOffer has no such
+                    // fields; those belong to JobRequest and are not forwarded by the serializer,
+                    // so both rendered as '—'. Replaced with Category and Rate which are available.
+                    { icon: User,       iconBg: 'bg-blue-50 dark:bg-blue-900/20',       iconColor: 'text-blue-500',    label: 'Resident',        value: incomingJob?.resident?.name    },
+                    { icon: MapPin,     iconBg: 'bg-red-50 dark:bg-red-900/20',         iconColor: 'text-red-500',     label: 'Service Address', value: incomingJob?.resident?.address },
+                    { icon: Briefcase,  iconBg: 'bg-purple-50 dark:bg-purple-900/20',   iconColor: 'text-purple-500',  label: 'Category',        value: incomingJob?.service           },
+                    { icon: DollarSign, iconBg: 'bg-emerald-50 dark:bg-emerald-900/20', iconColor: 'text-emerald-600', label: 'Your Rate',       value: worker ? `₱${worker.daily_rate}/day` : '—' },
                   ].map(({ icon: Icon, iconBg, iconColor, label, value }) => (
                     <div key={label} className="flex items-start gap-3.5">
                       <div className={`p-2.5 rounded-xl flex-shrink-0 ${iconBg}`} aria-hidden="true"><Icon size={14} className={iconColor} /></div>
@@ -459,9 +499,7 @@ export default function WorkerDashboard() {
                 <div>
                   <h3 className="font-black text-skill-dark dark:text-white text-base">Confirm Start Date</h3>
                   <p className="text-[10px] text-gray-400 mt-0.5 uppercase tracking-widest font-bold">
-                    Resident prefers: <span className="text-skill-primary">
-                      {incomingJob?.preferred_start?.replace(/_/g, ' ').replace(/\b\w/g, c => c.toUpperCase())}
-                    </span>
+                    Job: <span className="text-skill-primary">{incomingJob?.problem ?? '—'}</span>
                   </p>
                 </div>
                 <button onClick={() => setShowDateModal(false)} className="p-2 hover:bg-skill-light dark:hover:bg-dark-bg rounded-xl transition-all">
