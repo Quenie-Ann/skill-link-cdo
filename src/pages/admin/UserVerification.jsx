@@ -518,7 +518,8 @@ export default function UserVerification() {
                                  doc.doc_type === 'government_id' ? 'Government-Issued ID' : doc.doc_type}
                               </span>
                             </div>
-                            <a href={`http://127.0.0.1:8000${doc.file}`} target="_blank" rel="noopener noreferrer"
+                            {/* ✅ FIXED: doc.file na lang — naa nay full URL gikan sa backend */}
+                            <a href={doc.file} target="_blank" rel="noopener noreferrer"
                               className="text-[10px] font-bold text-skill-primary hover:text-emerald-600 flex items-center gap-1 transition-colors">
                               <Eye size={10} aria-hidden="true" /> View
                             </a>
@@ -567,7 +568,8 @@ export default function UserVerification() {
                                 Submitted
                               </span>
                             </div>
-                            <a href={`http://127.0.0.1:8000${doc.file}`} target="_blank" rel="noopener noreferrer"
+                            {/* ✅ FIXED: doc.file na lang — naa nay full URL gikan sa backend */}
+                            <a href={doc.file} target="_blank" rel="noopener noreferrer"
                               className="text-[10px] font-bold text-skill-primary hover:text-emerald-600 flex items-center gap-1 transition-colors">
                               <Eye size={10} aria-hidden="true" /> View
                             </a>

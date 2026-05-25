@@ -130,40 +130,56 @@ const Register = () => {
       }
 
       // Step 2 — Upload documents if worker and files selected
-      if (formData.role === 'worker' && data.id) {
+      if (formData.role === 'worker' && data.worker_profile_id) {
         if (certFile) {
           const certForm = new FormData();
-          certForm.append('worker_id', data.id);
+          certForm.append('worker_id', data.worker_profile_id); // ← FIXED
           certForm.append('doc_type', 'certification');
           certForm.append('file', certFile);
-          await fetch(`${BASE_URL}/documents/upload/`, {
+          const certRes = await fetch(`${BASE_URL}/documents/upload/`, {
             method: 'POST',
             body: certForm,
           });
+          if (!certRes.ok) {
+            const certErr = await certRes.json();
+            console.error('Certification upload failed:', certErr);
+          }
         }
 
         if (clearanceFile) {
           const clearForm = new FormData();
-          clearForm.append('worker_id', data.id);
+          clearForm.append('worker_id', data.worker_profile_id); // ← FIXED
           clearForm.append('doc_type', 'barangay_clearance');
           clearForm.append('file', clearanceFile);
-          await fetch(`${BASE_URL}/documents/upload/`, {
+          const clearRes = await fetch(`${BASE_URL}/documents/upload/`, {
             method: 'POST',
             body: clearForm,
           });
+          if (!clearRes.ok) {
+            const clearErr = await clearRes.json();
+            console.error('Barangay clearance upload failed:', clearErr);
+          }
         }
       }
 
-      // Step 3 — Upload resident document if resident and file selected
-      if (formData.role === 'resident' && data.id && residentDocFile) {
+      // ✅ FIX: Gamiton na ang resident_profile_id (dili na data.id)
+      if (formData.role === 'resident' && data.resident_profile_id && residentDocFile) {
         const residentForm = new FormData();
-        residentForm.append('resident_id', data.id);
+        residentForm.append('resident_id', data.resident_profile_id); // ← FIXED
         residentForm.append('doc_type', residentDocType);
         residentForm.append('file', residentDocFile);
-        await fetch(`${BASE_URL}/residents/documents/upload/`, {
+
+        const docRes = await fetch(`${BASE_URL}/residents/documents/upload/`, {
           method: 'POST',
           body: residentForm,
         });
+
+        if (!docRes.ok) {
+          const docErr = await docRes.json();
+          console.error('Document upload failed:', docErr);
+          // Dili i-throw para makapadayon pa ang registration
+          // Ang user registered na, ang document lang ang problema
+        }
       }
 
       navigate('/login', {
