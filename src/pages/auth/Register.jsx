@@ -4,7 +4,8 @@ import { useNavigate, Link } from 'react-router-dom';
 import { Sun, Moon, Mail, Lock, User, Phone, MapPin, AlertCircle, ChevronDown, Briefcase, Upload, X } from 'lucide-react';
 import workspaceImg from '../../assets/background.jpg';
 
-const BASE_URL = 'http://127.0.0.1:8000/api';
+// Using Django server with CORS enabled, so frontend can be on different port during development.
+const BASE_URL = import.meta.env.VITE_API_URL || 'http://127.0.0.1:8000/api';
 
 const Register = () => {
   const navigate = useNavigate();
