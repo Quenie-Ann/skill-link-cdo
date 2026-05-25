@@ -13,9 +13,7 @@ const USE_MOCK = false;
 
 // Using Django server with CORS enabled, so frontend can be on different port during development.
 const BASE_URL = import.meta.env.VITE_API_URL || 'http://127.0.0.1:8000/api';
-//temporary logging to debug 
-console.log('API BASE_URL:', BASE_URL);
-console.log('ENV VAR:', import.meta.env.VITE_API_URL);
+
 //  Internal HTTP helper — used only when USE_MOCK = false
 //async function request(method, path, body = null) {
 
