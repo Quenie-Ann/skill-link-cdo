@@ -23,34 +23,35 @@ async function request(method, path, body = null) {
 
   const options = {
     method,
-    headers: { 
+    headers: {
       'Content-Type': 'application/json',
-      // Only attach Authorization header if the token exists
       ...(token && { 'Authorization': `Bearer ${token}` })
     }
   };
-  
+
   if (body) options.body = JSON.stringify(body);
 
   const res = await fetch(`${BASE_URL}${path}`, options);
-
-  // 1. Get the raw text first to avoid "Unexpected end of JSON"
   const text = await res.text();
-  
-  // 2. Safely parse JSON if text exists, otherwise return an empty object
-  const data = text ? JSON.parse(text) : {};
 
-  // 3. Robust Error Handling
+  // Safely parse — HTML 404 pages will no longer crash the app
+  let data = {};
+  try {
+    data = text ? JSON.parse(text) : {};
+  } catch {
+    // Server returned non-JSON (e.g. HTML 404 page)
+    if (!res.ok) {
+      throw new Error(`Server error ${res.status}: ${res.statusText}`);
+    }
+    return {};
+  }
+
   if (!res.ok) {
-    // Check if Django sent a specific error message, otherwise fallback to status text
     const errorMsg = data.error || data.detail || `Error ${res.status}: ${res.statusText}`;
-    
-    // Optional: Auto-logout if token is expired (401 Unauthorized)
     if (res.status === 401) {
       localStorage.removeItem('barangayskill_session');
-      window.location.hash = '/login'; 
+      window.location.hash = '/login';
     }
-
     throw new Error(errorMsg);
   }
 
