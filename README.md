@@ -123,10 +123,15 @@ The app will be available at `http://localhost:5173`.
 ## Test Accounts
 
 | Role           | Email                    | Password      |
+Localhost 
 | -------------- | ------------------------ | ------------- |
 | Barangay Admin | `admin@skilllink.com`    | `admin123`    |
 | Skilled Worker | `worker@skilllink.com`   | `worker123`   |
 | Resident       | `resident@skilllink.com` | `resident123` |
+Deployed Vercel 
+| Barangay Admin | `admin@skilllinkcdo.com`    | `SkillLink2026!`    |
+| Skilled Worker | `worker.bernard.lim.electrician@skilllinkcdo.com`   | `SkillLink2026!`   |
+| Resident       | `resident.maria.santos.1@skilllinkcdo.com` | `SkillLink2026!` |
 
 ---
 
